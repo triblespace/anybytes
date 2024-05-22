@@ -1,2 +1,2 @@
-This is a standalone copy of the minibytes sublibrary from Facebooks [Sapling](https://github.com/facebook/sapling) scm.
+This is a standalone copy of the minibytes sub-library from facebooks [sapling scm](https://github.com/facebook/sapling).
 
