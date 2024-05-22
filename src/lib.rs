@@ -19,7 +19,6 @@
 mod bytes;
 mod impls;
 mod owners;
-mod serde;
 mod text;
 
 #[cfg(test)]
