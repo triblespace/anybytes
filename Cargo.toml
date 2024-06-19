@@ -3,6 +3,7 @@ name = "dynbytes"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+description = "A small library abstracting over bytes owning types in an extensible way."
 
 [dependencies]
 bytes = { version = "1.6.0", features = ["serde"], optional = true }
