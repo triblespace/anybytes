@@ -1,8 +1,9 @@
 [package]
-name = "dynbytes"
+name = "anybytes"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+repository = "https://github.com/triblespace/anybytes"
 description = "A small library abstracting over bytes owning types in an extensible way."
 
 [dependencies]
