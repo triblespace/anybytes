@@ -1,6 +1,7 @@
 /*
  * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
+ * Copyright (c) Jan-Paul Bultmann
+ * 
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
@@ -19,14 +20,10 @@
 mod bytes;
 mod impls;
 mod owners;
-mod text;
 
 #[cfg(test)]
 mod tests;
 
-pub use text::Text;
-pub use text::TextOwner;
-
 pub use crate::bytes::Bytes;
-pub use crate::bytes::BytesOwner;
+pub use crate::bytes::ByteOwner;
 pub use crate::bytes::WeakBytes;
