@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-//! Implement common traits for [`Bytes`] and [`Text`].
+//! Implement common traits for [`Bytes`].
 
 use std::ascii::escape_default;
 use std::borrow;
@@ -14,6 +14,7 @@ use std::cmp;
 use std::fmt;
 use std::hash;
 use std::ops;
+use std::sync::Arc;
 
 use crate::Bytes;
 use crate::ByteOwner;
@@ -21,6 +22,12 @@ use crate::ByteOwner;
 impl<T: ByteOwner> From<T> for Bytes {
     fn from(value: T) -> Self {
         Self::from_owner(value)
+    }
+}
+
+impl<T: ByteOwner> From<Arc<T>> for Bytes {
+    fn from(arc: Arc<T>) -> Self {
+        Self::from_arc(arc)
     }
 }
 

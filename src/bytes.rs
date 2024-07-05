@@ -143,6 +143,16 @@ impl Bytes {
         }
     }
 
+    /// Creates `Bytes` from an `Arc<BytesOwner>`.
+    pub fn from_arc(arc: Arc<impl ByteOwner>) -> Self {
+        let bytes = arc.as_bytes();
+        Self {
+            ptr: bytes.as_ptr(),
+            len: bytes.len(),
+            owner: Some(arc),
+        }
+    }
+
     /// Creates `Bytes` instance from slice, by copying it.
     pub fn copy_from_slice(data: &[u8]) -> Self {
         Self::from_owner(data.to_vec())
