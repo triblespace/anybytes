@@ -135,12 +135,8 @@ impl Bytes {
 
     /// Creates `Bytes` from a [`BytesOwner`] (for example, `Vec<u8>`).
     pub fn from_owner(owner: impl ByteOwner) -> Self {
-        let bytes = owner.as_bytes();
-        Self {
-            ptr: bytes.as_ptr(),
-            len: bytes.len(),
-            owner: Some(Arc::new(owner)),
-        }
+        let arc = Arc::new(owner);
+        Self::from_arc(arc)
     }
 
     /// Creates `Bytes` from an `Arc<BytesOwner>`.
