@@ -27,6 +27,8 @@ impl<T: ByteOwner> AnyByteOwner for T {
 
 pub type WeakBytes = Weak<dyn AnyByteOwner>;
 
+const EMPTY: &'static [u8;0] = b"";
+
 /// Immutable bytes with zero-copy slicing and cloning.
 pub struct Bytes {
     pub(crate) ptr: *const u8,
@@ -125,7 +127,7 @@ impl Bytes {
     /// Creates an empty `Bytes`.
     #[inline]
     pub fn new() -> Self {
-        let empty = &[];
+        let empty = &EMPTY;
         Self {
             ptr: empty.as_ptr(),
             len: empty.len(),
