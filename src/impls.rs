@@ -1,7 +1,7 @@
 /*
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  * Copyright (c) Jan-Paul Bultmann
- * 
+ *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
@@ -16,8 +16,8 @@ use std::hash;
 use std::ops;
 use std::sync::Arc;
 
-use crate::Bytes;
 use crate::ByteOwner;
+use crate::Bytes;
 
 impl<T: ByteOwner> From<T> for Bytes {
     fn from(value: T) -> Self {

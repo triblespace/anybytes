@@ -1,7 +1,7 @@
 /*
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  * Copyright (c) Jan-Paul Bultmann
- * 
+ *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
@@ -21,9 +21,18 @@ mod bytes;
 mod impls;
 mod owners;
 
+#[cfg(feature = "zerocopy")]
+mod packed;
+#[cfg(feature = "zerocopy")]
+mod packedslice;
+
 #[cfg(test)]
 mod tests;
 
-pub use crate::bytes::Bytes;
 pub use crate::bytes::ByteOwner;
+pub use crate::bytes::Bytes;
 pub use crate::bytes::WeakBytes;
+#[cfg(feature = "zerocopy")]
+pub use crate::packed::Packed;
+#[cfg(feature = "zerocopy")]
+pub use crate::packedslice::PackedSlice;
