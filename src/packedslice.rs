@@ -1,4 +1,4 @@
-use std::{fmt::Debug, marker::PhantomData, ops::Deref, sync::Arc};
+use std::{fmt::Debug, hash::Hash, marker::PhantomData, ops::Deref, sync::Arc};
 
 use crate::{ByteOwner, Bytes};
 use zerocopy::{AsBytes, FromBytes};
@@ -33,16 +33,6 @@ impl<T> Clone for PackedSlice<T> {
             bytes: self.bytes.clone(),
             _type: PhantomData,
         }
-    }
-}
-
-impl<T> std::fmt::Debug for PackedSlice<T>
-where
-    T: FromBytes + Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let inner: &[T] = self;
-        Debug::fmt(inner, f)
     }
 }
 
@@ -125,6 +115,45 @@ where
                 _type: PhantomData,
             })
         }
+    }
+}
+
+impl<T> std::fmt::Debug for PackedSlice<T>
+where
+    T: FromBytes + Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let inner: &[T] = self;
+        Debug::fmt(inner, f)
+    }
+}
+
+impl<T> Default for PackedSlice<T> {
+    fn default() -> Self {
+        Self {
+            bytes: Default::default(),
+            _type: Default::default()
+        }
+    }
+}
+
+impl<T> PartialEq for PackedSlice<T>
+where T: FromBytes + std::cmp::PartialEq {
+    fn eq(&self, other: &Self) -> bool {
+        let self_slice = self.deref();
+        let other_slice = other.deref();
+        self_slice == other_slice
+    }
+}
+
+impl<T> Eq for PackedSlice<T>
+where T: FromBytes + std::cmp::Eq {}
+
+impl<T> Hash for PackedSlice<T>
+where T: FromBytes + Hash {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let self_slice = self.deref();
+        self_slice.hash(state);
     }
 }
 
