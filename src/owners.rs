@@ -13,7 +13,7 @@ use zerocopy::AsBytes;
 use crate::ByteOwner;
 
 #[cfg(feature = "fromzerocopy")]
-impl<T> ByteOwner for Vec<T>
+unsafe impl<T> ByteOwner for Vec<T>
 where T: AsBytes + Sync + Send + 'static {
     fn as_bytes(&self) -> &[u8] {
         let slice: &[T] = self.as_ref();
@@ -22,14 +22,14 @@ where T: AsBytes + Sync + Send + 'static {
 }
 
 #[cfg(not(feature = "fromzerocopy"))]
-impl ByteOwner for Vec<u8> {
+unsafe impl ByteOwner for Vec<u8> {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
 }
 
 #[cfg(feature = "fromzerocopy")]
-impl<T> ByteOwner for Box<T>
+unsafe impl<T> ByteOwner for Box<T>
 where T: AsBytes + Sync + Send + 'static {
     fn as_bytes(&self) -> &[u8] {
         let inner = self.as_ref();
@@ -38,34 +38,34 @@ where T: AsBytes + Sync + Send + 'static {
 }
 
 #[cfg(not(feature = "fromzerocopy"))]
-impl ByteOwner for Box<[u8]> {
+unsafe impl ByteOwner for Box<[u8]> {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
 }
 
-impl ByteOwner for String {
+unsafe impl ByteOwner for String {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
 }
 
 #[cfg(feature = "frombytes")]
-impl ByteOwner for bytes::Bytes {
+unsafe impl ByteOwner for bytes::Bytes {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
 }
 
 #[cfg(feature = "fromownedbytes")]
-impl ByteOwner for ownedbytes::OwnedBytes {
+unsafe impl ByteOwner for ownedbytes::OwnedBytes {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
 }
 
 #[cfg(feature = "frommmap")]
-impl ByteOwner for memmap2::Mmap {
+unsafe impl ByteOwner for memmap2::Mmap {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }

@@ -12,7 +12,7 @@ use std::ops::RangeBounds;
 use std::sync::Arc;
 use std::sync::Weak;
 
-pub trait ByteOwner: Send + Sync + 'static {
+pub unsafe trait ByteOwner: Send + Sync + 'static {
     fn as_bytes(&self) -> &[u8];
 }
 pub trait AnyByteOwner: ByteOwner {
