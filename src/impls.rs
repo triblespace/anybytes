@@ -58,6 +58,9 @@ impl ops::Deref for Bytes {
     }
 }
 
+#[cfg(feature="fromownedbytes")]
+unsafe impl ownedbytes::StableDeref for Bytes {}
+
 impl hash::Hash for Bytes {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         self.as_slice().hash(state);
