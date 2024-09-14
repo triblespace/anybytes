@@ -18,7 +18,6 @@
 //! types to further extend storage support.
 
 mod bytes;
-mod impls;
 mod owners;
 
 #[cfg(feature = "zerocopy")]

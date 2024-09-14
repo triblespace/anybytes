@@ -11,8 +11,9 @@ pub struct PackedSlice<T> {
 impl<T> PackedSlice<T> {
     pub fn copy_from(value: &[T]) -> Self
     where T: AsBytes {
+        let bx: Box<[u8]> = value.as_bytes().into();
         PackedSlice {
-            bytes: Bytes::copy_from_slice(value.as_bytes()),
+            bytes: Bytes::from_owner(bx),
             _type: PhantomData,
         }
     }

@@ -11,6 +11,12 @@ use std::ops::Range;
 use std::ops::RangeBounds;
 use std::sync::Arc;
 use std::sync::Weak;
+use std::ascii::escape_default;
+use std::borrow;
+use std::cmp;
+use std::fmt;
+use std::hash;
+use std::ops;
 
 pub unsafe trait ByteOwner: Send + Sync + 'static {
     fn as_bytes(&self) -> &[u8];
@@ -93,15 +99,15 @@ impl Bytes {
     }
 
     /// Attempt to convert `slice` to a zero-copy slice of this `Bytes`.
-    /// Copy the `slice` if zero-copy cannot be done.
+    ///
+    /// Returns `None` if `slice` is outside the memory range of this
+    /// `Bytes`.
     ///
     /// This is similar to `bytes::Bytes::slice_ref` from `bytes 0.5.4`,
     /// but does not panic.
-    pub fn slice_to_bytes(&self, slice: &[u8]) -> Self {
-        match self.range_of_slice(slice) {
-            Some(range) => self.slice(range),
-            None => Self::copy_from_slice(slice),
-        }
+    pub fn slice_to_bytes(&self, slice: &[u8]) -> Option<Self> {
+        let range = self.range_of_slice(slice)?;
+        Some(self.slice(range))
     }
 
     /// Return a range `x` so that `self[x]` matches `slice` exactly
@@ -142,6 +148,12 @@ impl Bytes {
     }
 
     /// Creates `Bytes` from an `Arc<BytesOwner>`.
+    /// 
+    /// This provides a potentially faster path for `Bytes` creation
+    /// as it can forgoe an additional allocation for the wrapping Arc.
+    /// For example when you implement `ByteOwner` for a `zerocopy` type,
+    /// sadly we can't provide a blanked implementation for those types
+    /// because of the orphane rule.
     pub fn from_arc(arc: Arc<impl ByteOwner>) -> Self {
         let bytes = arc.as_bytes();
         Self {
@@ -149,11 +161,6 @@ impl Bytes {
             len: bytes.len(),
             owner: Some(arc),
         }
-    }
-
-    /// Creates `Bytes` instance from slice, by copying it.
-    pub fn copy_from_slice(data: &[u8]) -> Self {
-        Self::from_owner(data.to_vec())
     }
 
     #[inline]
@@ -188,5 +195,97 @@ impl Bytes {
             len: slice_like.len(),
             owner: Some(arc),
         })
+    }
+}
+
+impl<T: ByteOwner> From<T> for Bytes {
+    fn from(value: T) -> Self {
+        Self::from_owner(value)
+    }
+}
+
+impl<T: ByteOwner> From<Arc<T>> for Bytes {
+    fn from(arc: Arc<T>) -> Self {
+        Self::from_arc(arc)
+    }
+}
+
+impl From<&'static [u8]> for Bytes {
+    fn from(value: &'static [u8]) -> Self {
+        Self::from_static(value)
+    }
+}
+
+impl From<&'static str> for Bytes {
+    fn from(value: &'static str) -> Self {
+        Self::from_static(value.as_bytes())
+    }
+}
+
+impl AsRef<[u8]> for Bytes {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        self.as_slice()
+    }
+}
+
+impl ops::Deref for Bytes {
+    type Target = [u8];
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+#[cfg(feature="fromownedbytes")]
+unsafe impl ownedbytes::StableDeref for Bytes {}
+
+impl hash::Hash for Bytes {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.as_slice().hash(state);
+    }
+}
+
+impl borrow::Borrow<[u8]> for Bytes {
+    fn borrow(&self) -> &[u8] {
+        self.as_slice()
+    }
+}
+
+impl Default for Bytes {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T: AsRef<[u8]>> PartialEq<T> for Bytes {
+    fn eq(&self, other: &T) -> bool {
+        self.as_slice() == other.as_ref()
+    }
+}
+
+impl Eq for Bytes {}
+
+impl<T: AsRef<[u8]>> PartialOrd<T> for Bytes {
+    fn partial_cmp(&self, other: &T) -> Option<cmp::Ordering> {
+        self.as_slice().partial_cmp(other.as_ref())
+    }
+}
+
+impl Ord for Bytes {
+    fn cmp(&self, other: &Bytes) -> cmp::Ordering {
+        self.as_slice().cmp(other.as_slice())
+    }
+}
+
+impl fmt::Debug for Bytes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Use `[u8]::escape_ascii` when inherent_ascii_escape is stabilized.
+        f.write_str("b\"")?;
+        for &byte in self.as_slice() {
+            fmt::Display::fmt(&escape_default(byte), f)?;
+        }
+        f.write_str("\"")?;
+        Ok(())
     }
 }
