@@ -1,5 +1,6 @@
 use std::{fmt::Debug, hash::Hash, marker::PhantomData, ops::Deref, sync::Arc};
 
+use super::PackError;
 use crate::{ByteOwner, Bytes};
 use zerocopy::{AsBytes, FromBytes};
 
@@ -10,7 +11,9 @@ pub struct PackedSlice<T> {
 
 impl<T> PackedSlice<T> {
     pub fn copy_from(value: &[T]) -> Self
-    where T: AsBytes {
+    where
+        T: AsBytes,
+    {
         let bx: Box<[u8]> = value.as_bytes().into();
         PackedSlice {
             bytes: Bytes::from_owner(bx),
@@ -21,11 +24,6 @@ impl<T> PackedSlice<T> {
     pub fn bytes(&self) -> Bytes {
         self.bytes.clone()
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PackError {
-    BadLayout,
 }
 
 impl<T> Clone for PackedSlice<T> {
@@ -133,13 +131,15 @@ impl<T> Default for PackedSlice<T> {
     fn default() -> Self {
         Self {
             bytes: Default::default(),
-            _type: Default::default()
+            _type: Default::default(),
         }
     }
 }
 
 impl<T> PartialEq for PackedSlice<T>
-where T: FromBytes + std::cmp::PartialEq {
+where
+    T: FromBytes + std::cmp::PartialEq,
+{
     fn eq(&self, other: &Self) -> bool {
         let self_slice = self.deref();
         let other_slice = other.deref();
@@ -147,11 +147,12 @@ where T: FromBytes + std::cmp::PartialEq {
     }
 }
 
-impl<T> Eq for PackedSlice<T>
-where T: FromBytes + std::cmp::Eq {}
+impl<T> Eq for PackedSlice<T> where T: FromBytes + std::cmp::Eq {}
 
 impl<T> Hash for PackedSlice<T>
-where T: FromBytes + Hash {
+where
+    T: FromBytes + Hash,
+{
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let self_slice = self.deref();
         self_slice.hash(state);
@@ -175,7 +176,7 @@ mod test {
     fn roundtrip() {
         let v: Vec<usize> = vec![1, 2, 3, 4];
         let p: PackedSlice<_> = v.clone().into();
-        let r:&[_] = &p;
+        let r: &[_] = &p;
         assert_eq!(v.as_slice(), r)
     }
 }

@@ -14,7 +14,9 @@ use crate::ByteOwner;
 
 #[cfg(feature = "fromzerocopy")]
 unsafe impl<T> ByteOwner for Vec<T>
-where T: AsBytes + Sync + Send + 'static {
+where
+    T: AsBytes + Sync + Send + 'static,
+{
     fn as_bytes(&self) -> &[u8] {
         let slice: &[T] = self.as_ref();
         AsBytes::as_bytes(slice)
@@ -30,7 +32,9 @@ unsafe impl ByteOwner for Vec<u8> {
 
 #[cfg(feature = "fromzerocopy")]
 unsafe impl<T> ByteOwner for Box<T>
-where T: AsBytes + ?Sized + Sync + Send + 'static {
+where
+    T: AsBytes + ?Sized + Sync + Send + 'static,
+{
     fn as_bytes(&self) -> &[u8] {
         let inner = self.as_ref();
         AsBytes::as_bytes(inner)

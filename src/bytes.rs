@@ -7,16 +7,16 @@
  */
 
 use std::any::Any;
-use std::ops::Range;
-use std::ops::RangeBounds;
-use std::sync::Arc;
-use std::sync::Weak;
 use std::ascii::escape_default;
 use std::borrow;
 use std::cmp;
 use std::fmt;
 use std::hash;
 use std::ops;
+use std::ops::Range;
+use std::ops::RangeBounds;
+use std::sync::Arc;
+use std::sync::Weak;
 
 pub unsafe trait ByteOwner: Send + Sync + 'static {
     fn as_bytes(&self) -> &[u8];
@@ -33,7 +33,7 @@ impl<T: ByteOwner> AnyByteOwner for T {
 
 pub type WeakBytes = Weak<dyn AnyByteOwner>;
 
-const EMPTY: &'static [u8;0] = b"";
+const EMPTY: &'static [u8; 0] = b"";
 
 /// Immutable bytes with zero-copy slicing and cloning.
 pub struct Bytes {
@@ -148,7 +148,7 @@ impl Bytes {
     }
 
     /// Creates `Bytes` from an `Arc<BytesOwner>`.
-    /// 
+    ///
     /// This provides a potentially faster path for `Bytes` creation
     /// as it can forgoe an additional allocation for the wrapping Arc.
     /// For example when you implement `ByteOwner` for a `zerocopy` type,
@@ -237,7 +237,7 @@ impl ops::Deref for Bytes {
     }
 }
 
-#[cfg(feature="fromownedbytes")]
+#[cfg(feature = "fromownedbytes")]
 unsafe impl ownedbytes::StableDeref for Bytes {}
 
 impl hash::Hash for Bytes {

@@ -22,8 +22,6 @@ mod owners;
 
 #[cfg(feature = "zerocopy")]
 pub mod packed;
-#[cfg(feature = "zerocopy")]
-pub mod packedslice;
 
 #[cfg(test)]
 mod tests;
@@ -34,4 +32,6 @@ pub use crate::bytes::WeakBytes;
 #[cfg(feature = "zerocopy")]
 pub use crate::packed::Packed;
 #[cfg(feature = "zerocopy")]
-pub use crate::packedslice::PackedSlice;
+pub use crate::packed::PackedSlice;
+#[cfg(feature = "zerocopy")]
+pub use crate::packed::PackedStr;
