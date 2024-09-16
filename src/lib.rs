@@ -17,13 +17,13 @@
 //! supports [`memmap2::Mmap`]. Libraries can implement [`BytesOwner`] for other
 //! types to further extend storage support.
 
-mod bytes;
+pub mod bytes;
 mod owners;
 
 #[cfg(feature = "zerocopy")]
-mod packed;
+pub mod packed;
 #[cfg(feature = "zerocopy")]
-mod packedslice;
+pub mod packedslice;
 
 #[cfg(test)]
 mod tests;

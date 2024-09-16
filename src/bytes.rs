@@ -181,13 +181,13 @@ impl Bytes {
 
     /// Create a weak pointer. Returns `None` if backed by a static buffer.
     /// Note the weak pointer has the full range of the buffer.
-    pub fn downgrade(&self) -> Option<Weak<dyn AnyByteOwner>> {
+    pub fn downgrade(&self) -> Option<WeakBytes> {
         self.owner.as_ref().map(Arc::downgrade)
     }
 
     /// The reverse of `downgrade`. Returns `None` if the value was dropped.
     /// Note the upgraded `Bytes` has the full range of the buffer.
-    pub fn upgrade(weak: &Weak<dyn AnyByteOwner>) -> Option<Self> {
+    pub fn upgrade(weak: &WeakBytes) -> Option<Self> {
         let arc = weak.upgrade()?;
         let slice_like: &[u8] = arc.as_ref().as_bytes();
         Some(Self {
