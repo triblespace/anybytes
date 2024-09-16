@@ -44,7 +44,7 @@ unsafe impl ByteOwner for Box<[u8]> {
     }
 }
 
-unsafe impl ByteOwner for str {
+unsafe impl ByteOwner for String {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
