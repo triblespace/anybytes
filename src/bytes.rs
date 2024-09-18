@@ -14,7 +14,7 @@ use std::fmt;
 use std::hash;
 use std::ops;
 use std::ops::Range;
-use std::ops::RangeBounds;
+use std::slice::SliceIndex;
 use std::sync::Arc;
 use std::sync::Weak;
 
@@ -33,13 +33,9 @@ impl<T: ByteOwner> AnyByteOwner for T {
 
 pub type WeakBytes = Weak<dyn AnyByteOwner>;
 
-const EMPTY: &'static [u8; 0] = b"";
-
 /// Immutable bytes with zero-copy slicing and cloning.
 pub struct Bytes {
-    pub(crate) ptr: *const u8,
-    pub(crate) len: usize,
-
+    pub(crate) data: &'static [u8],
     // Actual owner of the bytes. None for static buffers.
     pub(crate) owner: Option<Arc<dyn AnyByteOwner>>,
 }
@@ -48,13 +44,10 @@ pub struct Bytes {
 unsafe impl Send for Bytes {}
 unsafe impl Sync for Bytes {}
 
-// #[derive(Clone)] does not work well with type parameters.
-// Therefore implement Clone manually.
 impl Clone for Bytes {
     fn clone(&self) -> Self {
         Self {
-            ptr: self.ptr,
-            len: self.len,
+            data: self.data,
             owner: self.owner.clone(),
         }
     }
@@ -65,36 +58,18 @@ impl Bytes {
     /// Creates `Bytes` from a static slice.
     pub const fn from_static(slice: &'static [u8]) -> Self {
         Self {
-            ptr: slice.as_ptr(),
-            len: slice.len(),
+            // This is safe because slices always have a non-null address.
+            data: slice,
             owner: None,
         }
     }
 
     /// Returns a slice of self for the provided range.
     /// This operation is `O(1)`.
-    pub fn slice(&self, range: impl RangeBounds<usize>) -> Self {
-        use std::ops::Bound;
-        let start = match range.start_bound() {
-            Bound::Included(&n) => n,
-            Bound::Excluded(&n) => n + 1,
-            Bound::Unbounded => 0,
-        };
-        let end = match range.end_bound() {
-            Bound::Included(&n) => n + 1,
-            Bound::Excluded(&n) => n,
-            Bound::Unbounded => self.len,
-        };
-        assert!(start <= end, "invalid slice {}..{}", start, end);
-        assert!(end <= self.len, "{} exceeds Bytes length {}", end, self.len);
-        if start == end {
-            Self::new()
-        } else {
-            Self {
-                ptr: unsafe { self.ptr.add(start) },
-                len: end - start,
-                owner: self.owner.clone(),
-            }
+    pub fn slice(&self, range: impl SliceIndex<[u8], Output = [u8]>) -> Self {
+        Self {
+            data: &self.data[range],
+            owner: self.owner.clone(),
         }
     }
 
@@ -120,8 +95,8 @@ impl Bytes {
     pub fn range_of_slice(&self, slice: &[u8]) -> Option<Range<usize>> {
         let slice_start = slice.as_ptr() as usize;
         let slice_end = slice_start + slice.len();
-        let bytes_start = self.ptr as usize;
-        let bytes_end = bytes_start + self.len;
+        let bytes_start = self.data.as_ptr() as usize;
+        let bytes_end = bytes_start + self.len();
         if slice_start >= bytes_start && slice_end <= bytes_end {
             let start = slice_start - bytes_start;
             Some(start..start + slice.len())
@@ -132,11 +107,9 @@ impl Bytes {
 
     /// Creates an empty `Bytes`.
     #[inline]
-    pub fn new() -> Self {
-        let empty = &EMPTY;
+    pub fn empty() -> Self {
         Self {
-            ptr: empty.as_ptr(),
-            len: empty.len(),
+            data: &[],
             owner: None,
         }
     }
@@ -155,17 +128,19 @@ impl Bytes {
     /// sadly we can't provide a blanked implementation for those types
     /// because of the orphane rule.
     pub fn from_arc(arc: Arc<impl ByteOwner>) -> Self {
-        let bytes = arc.as_bytes();
+        let data = arc.as_bytes();
+        // Erase the lifetime.
+        let data = unsafe { &*(data as *const [u8]) };
         Self {
-            ptr: bytes.as_ptr(),
-            len: bytes.len(),
+            // This is safe because slices always have a non-null address.
+            data,
             owner: Some(arc),
         }
     }
 
     #[inline]
-    pub(crate) fn as_slice(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
+    pub(crate) fn as_slice<'a>(&'a self) -> &'a [u8] {
+        self.data
     }
 
     /// Attempt to downcast to an exclusive mut reference.
@@ -189,10 +164,12 @@ impl Bytes {
     /// Note the upgraded `Bytes` has the full range of the buffer.
     pub fn upgrade(weak: &WeakBytes) -> Option<Self> {
         let arc = weak.upgrade()?;
-        let slice_like: &[u8] = arc.as_ref().as_bytes();
+        let data: &[u8] = arc.as_ref().as_bytes();
+        // Erase the lifetime.
+        let data = unsafe { &*(data as *const [u8]) };
         Some(Self {
-            ptr: slice_like.as_ptr(),
-            len: slice_like.len(),
+            // This is safe because slices always have a non-null address.
+            data,
             owner: Some(arc),
         })
     }
@@ -254,7 +231,7 @@ impl borrow::Borrow<[u8]> for Bytes {
 
 impl Default for Bytes {
     fn default() -> Self {
-        Self::new()
+        Self::empty()
     }
 }
 
@@ -287,5 +264,15 @@ impl fmt::Debug for Bytes {
         }
         f.write_str("\"")?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Bytes;
+
+    #[test]
+    fn niche_optimisation() {
+        assert_eq!(size_of::<Bytes>(), size_of::<Option<Bytes>>());
     }
 }

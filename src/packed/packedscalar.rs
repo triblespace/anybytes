@@ -180,3 +180,19 @@ mod test {
         assert_eq!(l, r)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Packed;
+    use crate::packed::PackError;
+
+    #[test]
+    fn niche_optimisation_option() {
+        assert_eq!(size_of::<Packed<usize>>(), size_of::<Option<Packed<usize>>>());
+    }
+
+    #[test]
+    fn niche_optimisation_result() {
+        assert_eq!(size_of::<Packed<usize>>(), size_of::<Result<Packed<usize>, PackError>>());
+    }
+}
