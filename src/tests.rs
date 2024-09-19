@@ -37,14 +37,13 @@ quickcheck! {
 }
 
 #[test]
-fn test_downcast_mut() {
+fn test_unwrap_owner() {
     let v = b"abcd".to_vec();
-    let mut b = Bytes::from(v);
-    assert!(b.downcast_mut::<Vec<u8>>().is_some());
-    assert!(b.downcast_mut::<String>().is_none());
-    let mut c = b.clone();
-    assert!(b.downcast_mut::<Vec<u8>>().is_none());
-    assert!(c.downcast_mut::<Vec<u8>>().is_none());
+    let b = Bytes::from(v);
+    assert!(b.unwrap_owner::<Vec<u8>>().is_some());
+    let v = b"abcd".to_vec();
+    let b = Bytes::from(v);
+    assert!(b.unwrap_owner::<String>().is_none());
 }
 
 #[test]

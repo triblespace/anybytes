@@ -188,11 +188,17 @@ mod tests {
 
     #[test]
     fn niche_optimisation_option() {
-        assert_eq!(size_of::<Packed<usize>>(), size_of::<Option<Packed<usize>>>());
+        assert_eq!(
+            size_of::<Packed<usize>>(),
+            size_of::<Option<Packed<usize>>>()
+        );
     }
 
     #[test]
     fn niche_optimisation_result() {
-        assert_eq!(size_of::<Packed<usize>>(), size_of::<Result<Packed<usize>, PackError>>());
+        assert_eq!(
+            size_of::<Packed<usize>>(),
+            size_of::<Result<Packed<usize>, PackError>>()
+        );
     }
 }

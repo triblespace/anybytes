@@ -13,20 +13,21 @@ use std::cmp;
 use std::fmt;
 use std::hash;
 use std::ops;
+use std::ops::Index;
 use std::ops::Range;
 use std::slice::SliceIndex;
 use std::sync::Arc;
 use std::sync::Weak;
 
-pub unsafe trait ByteOwner: Send + Sync + 'static {
+pub unsafe trait ByteOwner: Sync + Send + 'static {
     fn as_bytes(&self) -> &[u8];
 }
 pub trait AnyByteOwner: ByteOwner {
-    fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn as_any(self: Arc<Self>) -> Arc<dyn Any + Sync + Send>;
 }
 
 impl<T: ByteOwner> AnyByteOwner for T {
-    fn as_any_mut(&mut self) -> &mut dyn Any {
+    fn as_any(self: Arc<Self>) -> Arc<dyn Any + Sync + Send> {
         self
     }
 }
@@ -55,6 +56,15 @@ impl Clone for Bytes {
 
 // Core implementation of Bytes.
 impl Bytes {
+    /// Creates an empty `Bytes`.
+    #[inline]
+    pub fn empty() -> Self {
+        Self {
+            data: &[],
+            owner: None,
+        }
+    }
+
     /// Creates `Bytes` from a static slice.
     pub const fn from_static(slice: &'static [u8]) -> Self {
         Self {
@@ -62,6 +72,55 @@ impl Bytes {
             data: slice,
             owner: None,
         }
+    }
+
+    /// Creates `Bytes` from a [`BytesOwner`] (for example, `Vec<u8>`).
+    pub fn from_owner(owner: impl ByteOwner) -> Self {
+        let arc = Arc::new(owner);
+        Self::from_arc(arc)
+    }
+
+    /// Creates `Bytes` from an `Arc<BytesOwner>`.
+    ///
+    /// This provides a potentially faster path for `Bytes` creation
+    /// as it can forgoe an additional allocation for the wrapping Arc.
+    /// For example when you implement `ByteOwner` for a `zerocopy` type,
+    /// sadly we can't provide a blanked implementation for those types
+    /// because of the orphane rule.
+    pub fn from_arc(arc: Arc<impl ByteOwner>) -> Self {
+        let data = arc.as_bytes();
+        // Erase the lifetime.
+        let data = unsafe { &*(data as *const [u8]) };
+        Self {
+            // This is safe because slices always have a non-null address.
+            data,
+            owner: Some(arc),
+        }
+    }
+
+    /// Returns the owner of the Bytes as a `Arc<dyn Any>`,
+    /// which can then be cast to the original type via `Arc::downcast`.
+    /// 
+    /// # Examples
+    ///
+    /// ```
+    /// use anybytes::Bytes;
+    /// use std::sync::Arc;
+    /// let owner: Vec<u8> = vec![0,1,2,3];
+    /// let bytes = Bytes::from_owner(owner);
+    /// let owner: Arc<Vec<u8>> = bytes.unwrap_owner().expect("Downcast of known type.");
+    /// ```
+    pub fn unwrap_owner<T>(self) -> Option<Arc<T>>
+    where T: Send + Sync + 'static {
+        let owner = self.owner?;
+        let owner = AnyByteOwner::as_any(owner);
+        owner.downcast::<T>().ok()
+    }
+    // TOMORROW pick up here, check conversion and reevaluate up/downcast.
+
+    #[inline]
+    pub(crate) fn as_slice<'a>(&'a self) -> &'a [u8] {
+        self.data
     }
 
     /// Returns a slice of self for the provided range.
@@ -105,59 +164,11 @@ impl Bytes {
         }
     }
 
-    /// Creates an empty `Bytes`.
-    #[inline]
-    pub fn empty() -> Self {
-        Self {
-            data: &[],
-            owner: None,
-        }
-    }
-
-    /// Creates `Bytes` from a [`BytesOwner`] (for example, `Vec<u8>`).
-    pub fn from_owner(owner: impl ByteOwner) -> Self {
-        let arc = Arc::new(owner);
-        Self::from_arc(arc)
-    }
-
-    /// Creates `Bytes` from an `Arc<BytesOwner>`.
-    ///
-    /// This provides a potentially faster path for `Bytes` creation
-    /// as it can forgoe an additional allocation for the wrapping Arc.
-    /// For example when you implement `ByteOwner` for a `zerocopy` type,
-    /// sadly we can't provide a blanked implementation for those types
-    /// because of the orphane rule.
-    pub fn from_arc(arc: Arc<impl ByteOwner>) -> Self {
-        let data = arc.as_bytes();
-        // Erase the lifetime.
-        let data = unsafe { &*(data as *const [u8]) };
-        Self {
-            // This is safe because slices always have a non-null address.
-            data,
-            owner: Some(arc),
-        }
-    }
-
-    #[inline]
-    pub(crate) fn as_slice<'a>(&'a self) -> &'a [u8] {
-        self.data
-    }
-
-    /// Attempt to downcast to an exclusive mut reference.
-    ///
-    /// Returns None if the type mismatches, or the internal reference count is
-    /// not 0.
-    pub fn downcast_mut<A: Any>(&mut self) -> Option<&mut A> {
-        let arc_owner = self.owner.as_mut()?;
-        let owner = Arc::get_mut(arc_owner)?;
-        let any = owner.as_any_mut();
-        any.downcast_mut()
-    }
-
     /// Create a weak pointer. Returns `None` if backed by a static buffer.
     /// Note the weak pointer has the full range of the buffer.
     pub fn downgrade(&self) -> Option<WeakBytes> {
-        self.owner.as_ref().map(Arc::downgrade)
+        let arc = self.owner.as_ref()?;
+        Some(Arc::downgrade(arc))
     }
 
     /// The reverse of `downgrade`. Returns `None` if the value was dropped.
