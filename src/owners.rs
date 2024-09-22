@@ -48,6 +48,23 @@ unsafe impl ByteOwner for Box<[u8]> {
     }
 }
 
+#[cfg(feature = "fromzerocopy")]
+unsafe impl<T> ByteOwner for &'static [T]
+where
+    T: AsBytes + Sync + Send + 'static,
+{
+    fn as_bytes(&self) -> &[u8] {
+        AsBytes::as_bytes(*self)
+    }
+}
+
+#[cfg(not(feature = "fromzerocopy"))]
+unsafe impl ByteOwner for &'static [u8] {
+    fn as_bytes(&self) -> &[u8] {
+        *self
+    }
+}
+
 unsafe impl ByteOwner for String {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()

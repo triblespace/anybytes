@@ -22,28 +22,16 @@ quickcheck! {
         let b: Bytes = a.slice(..a.len() / 2);
         b == &a[..b.len()] && (b.is_empty() || a.as_ptr() == b.as_ptr())
     }
-
-    fn test_range_of_slice(v: Vec<u8>) -> bool {
-        let a: Bytes = v.into();
-        let range1 = a.len() / 3.. a.len() * 2 / 3;
-        let slice = a.slice(range1.clone());
-        if slice.is_empty() {
-            true
-        } else {
-            let range2 = a.range_of_slice(&slice).unwrap();
-            range1 == range2
-        }
-    }
 }
 
 #[test]
-fn test_unwrap_owner() {
+fn test_downcast() {
     let v = b"abcd".to_vec();
     let b = Bytes::from(v);
-    assert!(b.unwrap_owner::<Vec<u8>>().is_some());
+    assert!(b.downcast::<Vec<u8>>().is_some());
     let v = b"abcd".to_vec();
     let b = Bytes::from(v);
-    assert!(b.unwrap_owner::<String>().is_none());
+    assert!(b.downcast::<String>().is_none());
 }
 
 #[test]
@@ -62,14 +50,15 @@ fn test_downgrade_upgrade() {
 
     // `downgrade` -> `upgrade` returns the same buffer.
     // Slicing is ignored. Full range is used.
-    let b1: crate::WeakBytes = b.slice(1..=2).downgrade().unwrap();
-    let b2 = Bytes::upgrade(&b1).unwrap();
-    assert_eq!(b, b2);
-    assert_eq!(b.as_ptr(), b2.as_ptr());
+    let b1 = b.slice(1..=2);
+    let wb = b1.downgrade();
+    let b2 = wb.upgrade().unwrap();
+    assert_eq!(b1, b2);
 
     // `upgrade` returns `None` if all strong refs are dropped.
-    drop(b2);
     drop(b);
-    let b3 = Bytes::upgrade(&b1);
+    drop(b1);
+    drop(b2);
+    let b3 = wb.upgrade();
     assert!(b3.is_none());
 }

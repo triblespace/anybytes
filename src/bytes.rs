@@ -13,11 +13,35 @@ use std::cmp;
 use std::fmt;
 use std::hash;
 use std::ops;
-use std::ops::Index;
 use std::ops::Range;
 use std::slice::SliceIndex;
 use std::sync::Arc;
 use std::sync::Weak;
+
+fn range_of_subslice(slice: &[u8], subslice: &[u8]) -> Option<Range<usize>> {
+    let slice_start = slice.as_ptr() as usize;
+    let slice_end = slice_start + slice.len();
+    let subslice_start = subslice.as_ptr() as usize;
+    let subslice_end = subslice_start + subslice.len();
+    if subslice_start >= slice_start && subslice_end <= slice_end {
+        let start = subslice_start - slice_start;
+        Some(start..start + subslice.len())
+    } else {
+        None
+    }
+}
+
+fn is_subslice(slice: &[u8], subslice: &[u8]) -> bool {
+    let slice_start = slice.as_ptr() as usize;
+    let slice_end = slice_start + slice.len();
+    let subslice_start = subslice.as_ptr() as usize;
+    let subslice_end = subslice_start + subslice.len();
+    subslice_start >= slice_start && subslice_end <= slice_end
+}
+
+unsafe fn erase_lifetime<'a>(slice: &'a [u8]) -> &'static [u8] {
+    &*(slice as *const [u8])
+}
 
 pub unsafe trait ByteOwner: Sync + Send + 'static {
     fn as_bytes(&self) -> &[u8];
@@ -32,13 +56,19 @@ impl<T: ByteOwner> AnyByteOwner for T {
     }
 }
 
-pub type WeakBytes = Weak<dyn AnyByteOwner>;
-
 /// Immutable bytes with zero-copy slicing and cloning.
 pub struct Bytes {
     pub(crate) data: &'static [u8],
-    // Actual owner of the bytes. None for static buffers.
-    pub(crate) owner: Option<Arc<dyn AnyByteOwner>>,
+    // Actual owner of the bytes.
+    pub(crate) owner: Arc<dyn AnyByteOwner>,
+}
+
+/// Weak variant of Bytes that doesn't retain the data
+/// unless a strong Bytes is referencing it.
+pub struct WeakBytes {
+    pub(crate) range: Range<usize>,
+    // Actual owner of the bytes.
+    pub(crate) owner: Weak<dyn AnyByteOwner>,
 }
 
 // ByteOwner is Send + Sync and Bytes is immutable.
@@ -59,19 +89,7 @@ impl Bytes {
     /// Creates an empty `Bytes`.
     #[inline]
     pub fn empty() -> Self {
-        Self {
-            data: &[],
-            owner: None,
-        }
-    }
-
-    /// Creates `Bytes` from a static slice.
-    pub const fn from_static(slice: &'static [u8]) -> Self {
-        Self {
-            // This is safe because slices always have a non-null address.
-            data: slice,
-            owner: None,
-        }
+        Self::from_owner(&[0u8; 0][..])
     }
 
     /// Creates `Bytes` from a [`BytesOwner`] (for example, `Vec<u8>`).
@@ -90,17 +108,21 @@ impl Bytes {
     pub fn from_arc(arc: Arc<impl ByteOwner>) -> Self {
         let data = arc.as_bytes();
         // Erase the lifetime.
-        let data = unsafe { &*(data as *const [u8]) };
+        let data = unsafe { erase_lifetime(data) };
         Self {
             // This is safe because slices always have a non-null address.
             data,
-            owner: Some(arc),
+            owner: arc,
         }
     }
 
-    /// Returns the owner of the Bytes as a `Arc<dyn Any>`,
-    /// which can then be cast to the original type via `Arc::downcast`.
-    /// 
+    #[inline]
+    pub(crate) fn as_slice<'a>(&'a self) -> &'a [u8] {
+        self.data
+    }
+
+    /// Returns the owner of the Bytes as a `Arc<T>`.
+    ///
     /// # Examples
     ///
     /// ```
@@ -108,19 +130,20 @@ impl Bytes {
     /// use std::sync::Arc;
     /// let owner: Vec<u8> = vec![0,1,2,3];
     /// let bytes = Bytes::from_owner(owner);
-    /// let owner: Arc<Vec<u8>> = bytes.unwrap_owner().expect("Downcast of known type.");
+    /// let owner: Arc<Vec<u8>> = bytes.downcast().expect("Downcast of known type.");
     /// ```
-    pub fn unwrap_owner<T>(self) -> Option<Arc<T>>
-    where T: Send + Sync + 'static {
-        let owner = self.owner?;
+    pub fn downcast<T>(self) -> Option<Arc<T>>
+    where
+        T: Send + Sync + 'static,
+    {
+        let owner = self.owner;
         let owner = AnyByteOwner::as_any(owner);
         owner.downcast::<T>().ok()
     }
-    // TOMORROW pick up here, check conversion and reevaluate up/downcast.
 
-    #[inline]
-    pub(crate) fn as_slice<'a>(&'a self) -> &'a [u8] {
-        self.data
+    pub fn reset(&mut self) {
+        let data = self.owner.as_bytes();
+        self.data = unsafe { erase_lifetime(data) };
     }
 
     /// Returns a slice of self for the provided range.
@@ -140,25 +163,10 @@ impl Bytes {
     /// This is similar to `bytes::Bytes::slice_ref` from `bytes 0.5.4`,
     /// but does not panic.
     pub fn slice_to_bytes(&self, slice: &[u8]) -> Option<Self> {
-        let range = self.range_of_slice(slice)?;
-        Some(self.slice(range))
-    }
-
-    /// Return a range `x` so that `self[x]` matches `slice` exactly
-    /// (not only content, but also internal pointer addresses).
-    ///
-    /// Returns `None` if `slice` is outside the memory range of this
-    /// `Bytes`.
-    ///
-    /// This operation is `O(1)`.
-    pub fn range_of_slice(&self, slice: &[u8]) -> Option<Range<usize>> {
-        let slice_start = slice.as_ptr() as usize;
-        let slice_end = slice_start + slice.len();
-        let bytes_start = self.data.as_ptr() as usize;
-        let bytes_end = bytes_start + self.len();
-        if slice_start >= bytes_start && slice_end <= bytes_end {
-            let start = slice_start - bytes_start;
-            Some(start..start + slice.len())
+        if is_subslice(self.data, slice) {
+            let data = unsafe { erase_lifetime(slice) };
+            let owner = self.owner.clone();
+            Some(Self { data, owner })
         } else {
             None
         }
@@ -166,23 +174,24 @@ impl Bytes {
 
     /// Create a weak pointer. Returns `None` if backed by a static buffer.
     /// Note the weak pointer has the full range of the buffer.
-    pub fn downgrade(&self) -> Option<WeakBytes> {
-        let arc = self.owner.as_ref()?;
-        Some(Arc::downgrade(arc))
+    pub fn downgrade(&self) -> WeakBytes {
+        let owned_slice = self.owner.as_bytes();
+        WeakBytes {
+            range: range_of_subslice(owned_slice, self.data)
+                .expect("self.data is always a valid range"),
+            owner: Arc::downgrade(&self.owner),
+        }
     }
+}
 
+impl WeakBytes {
     /// The reverse of `downgrade`. Returns `None` if the value was dropped.
-    /// Note the upgraded `Bytes` has the full range of the buffer.
-    pub fn upgrade(weak: &WeakBytes) -> Option<Self> {
-        let arc = weak.upgrade()?;
+    pub fn upgrade(&self) -> Option<Bytes> {
+        let arc = self.owner.upgrade()?;
         let data: &[u8] = arc.as_ref().as_bytes();
-        // Erase the lifetime.
-        let data = unsafe { &*(data as *const [u8]) };
-        Some(Self {
-            // This is safe because slices always have a non-null address.
-            data,
-            owner: Some(arc),
-        })
+        let data = &data[self.range.clone()];
+        let data = unsafe { erase_lifetime(data) };
+        Some(Bytes { data, owner: arc })
     }
 }
 
@@ -198,15 +207,9 @@ impl<T: ByteOwner> From<Arc<T>> for Bytes {
     }
 }
 
-impl From<&'static [u8]> for Bytes {
-    fn from(value: &'static [u8]) -> Self {
-        Self::from_static(value)
-    }
-}
-
 impl From<&'static str> for Bytes {
     fn from(value: &'static str) -> Self {
-        Self::from_static(value.as_bytes())
+        Self::from_owner(value.as_bytes())
     }
 }
 
