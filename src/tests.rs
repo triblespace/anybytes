@@ -48,8 +48,7 @@ fn test_downgrade_upgrade() {
     let v = b"abcd".to_vec();
     let b = Bytes::from(v);
 
-    // `downgrade` -> `upgrade` returns the same buffer.
-    // Slicing is ignored. Full range is used.
+    // `downgrade` -> `upgrade` returns the same slice.
     let b1 = b.slice(1..=2);
     let wb = b1.downgrade();
     let b2 = wb.upgrade().unwrap();
