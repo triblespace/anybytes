@@ -2,8 +2,8 @@ A small byte management library, that can abstract over various byte owning type
 
 ## Comparison
 
-| --- | Active | Extensible | Zerocopy Integration | mmap support |
-| --- | ------ | ---------- | -------------------- | ------------ |
+| Crate | Active | Extensible | Zerocopy Integration | mmap support |
+| ----- | ------ | ---------- | -------------------- | ------------ |
 | anybytes | ✅ | ✅ | ✅ | ✅ |
 | [bytes](https://crates.io/crates/bytes) | ✅ | ✅ | ❌ | ❌ |
 | [ownedbytes](https://crates.io/crates/ownedbytes) | ✅ | ✅ | ❌ | ✅ |
