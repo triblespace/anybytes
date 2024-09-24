@@ -228,7 +228,7 @@ impl ops::Deref for Bytes {
     }
 }
 
-#[cfg(feature = "fromownedbytes")]
+#[cfg(feature = "ownedbytes")]
 unsafe impl ownedbytes::StableDeref for Bytes {}
 
 impl hash::Hash for Bytes {
