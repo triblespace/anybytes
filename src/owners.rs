@@ -8,6 +8,7 @@
 
 //! Implement [`BytesOwner`] and [`TextOwner`] for common types.
 
+#[cfg(feature = "zerocopy")]
 use zerocopy::AsBytes;
 
 use crate::ByteOwner;
