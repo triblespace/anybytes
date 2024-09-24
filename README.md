@@ -2,12 +2,12 @@ A small byte management library, that can abstract over various byte owning type
 
 ## Comparison
 
-| Crate | Active | Extensible | Zerocopy Integration | mmap support |
-| ----- | ------ | ---------- | -------------------- | ------------ |
-| anybytes | ✅ | ✅ | ✅ | ✅ |
-| [bytes](https://crates.io/crates/bytes) | ✅ | ✅ | ❌ | ❌ |
-| [ownedbytes](https://crates.io/crates/ownedbytes) | ✅ | ✅ | ❌ | ✅ |
-| [minibytes](https://crates.io/crates/esl01-minibytes) | ❌[^1] | ✅ | ❌ | ✅ |
+| Crate | Active | Extensible | Zerocopy Integration | mmap support | kani verified |
+| ----- | ------ | ---------- | -------------------- | ------------ | -------- |
+| anybytes | ✅ | ✅ | ✅ | ✅ | 🚧 |
+| [bytes](https://crates.io/crates/bytes) | ✅ | ✅ | ❌ | ❌ | ❌ |
+| [ownedbytes](https://crates.io/crates/ownedbytes) | ✅ | ✅ | ❌ | ✅ | ❌ |
+| [minibytes](https://crates.io/crates/esl01-minibytes) | ❌[^1] | ✅ | ❌ | ✅ | ❌ |
 
 [^1]: No longer maintained as an individual crate.
 
