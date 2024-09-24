@@ -14,20 +14,19 @@ use zerocopy::AsBytes;
 use crate::ByteOwner;
 
 #[cfg(feature = "zerocopy")]
-unsafe impl<T> ByteOwner for Vec<T>
+unsafe impl<T> ByteOwner for &'static [T]
 where
     T: AsBytes + Sync + Send + 'static,
 {
     fn as_bytes(&self) -> &[u8] {
-        let slice: &[T] = self.as_ref();
-        AsBytes::as_bytes(slice)
+        AsBytes::as_bytes(*self)
     }
 }
 
 #[cfg(not(feature = "zerocopy"))]
-unsafe impl ByteOwner for Vec<u8> {
+unsafe impl ByteOwner for &'static [u8] {
     fn as_bytes(&self) -> &[u8] {
-        self.as_ref()
+        *self
     }
 }
 
@@ -50,19 +49,20 @@ unsafe impl ByteOwner for Box<[u8]> {
 }
 
 #[cfg(feature = "zerocopy")]
-unsafe impl<T> ByteOwner for &'static [T]
+unsafe impl<T> ByteOwner for Vec<T>
 where
     T: AsBytes + Sync + Send + 'static,
 {
     fn as_bytes(&self) -> &[u8] {
-        AsBytes::as_bytes(*self)
+        let slice: &[T] = self.as_ref();
+        AsBytes::as_bytes(slice)
     }
 }
 
 #[cfg(not(feature = "zerocopy"))]
-unsafe impl ByteOwner for &'static [u8] {
+unsafe impl ByteOwner for Vec<u8> {
     fn as_bytes(&self) -> &[u8] {
-        *self
+        self.as_ref()
     }
 }
 
