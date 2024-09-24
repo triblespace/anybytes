@@ -16,8 +16,8 @@ zerocopy = { version = "0.7.35", optional = true }
 quickcheck = "1.0"
 
 [features]
-default = ["frombytes", "fromownedbytes", "frommmap", "fromzerocopy"]
-frombytes = ["bytes"]
-fromownedbytes = ["ownedbytes"]
-frommmap = ["memmap2"]
-fromzerocopy = ["zerocopy"]
+default = ["mmap", "zerocopy"]
+bytes = ["dep:bytes"]
+ownedbytes = ["dep:ownedbytes"]
+mmap = ["dep:memmap2"]
+zerocopy = ["dep:zerocopy"]
