@@ -290,13 +290,3 @@ mod tests {
         assert_eq!(size_of::<Bytes>(), size_of::<Option<Bytes>>());
     }
 }
-
-#[cfg(kani)]
-mod verification {
-    use super::*;
-
-    #[kani::proof]
-    pub fn check_something() {
-        // ....
-    }
-}

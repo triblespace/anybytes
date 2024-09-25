@@ -92,3 +92,72 @@ unsafe impl ByteOwner for memmap2::Mmap {
         self.as_ref()
     }
 }
+
+#[cfg(kani)]
+mod verification {
+    use std::sync::Arc;
+
+    use crate::Bytes;
+
+    use super::*;
+
+    static STATIC_U8: [u8; 1024] = [0; 1024];
+
+    #[kani::proof]
+    #[kani::unwind(1025)]
+    pub fn check_static() {
+        let owner: &'static [u8] = &STATIC_U8;
+        let bytes = Bytes::from_owner(owner);
+        let bytes_slice: &[u8] = &bytes;
+        assert_eq!(owner, bytes_slice)
+    }
+
+    #[kani::proof]
+    #[kani::unwind(1025)]
+    pub fn check_box() {
+        let owner: Box<[u8]> = STATIC_U8.into();
+        let arc = Arc::new(owner);
+        let bytes = Bytes::from_arc(arc.clone());
+        let arc_slice: &[u8] = &arc;
+        let bytes_slice: &[u8] = &bytes;
+        assert_eq!(arc_slice, bytes_slice)
+    }
+
+    #[cfg(feature = "zerocopy")]
+    #[derive(zerocopy::FromZeroes, zerocopy::FromBytes, zerocopy::AsBytes, Clone, Copy)]
+    #[repr(C)]
+    struct ComplexZC {
+        a: u64,
+        b: [u8; 4],
+        c: u32
+    }
+
+    #[cfg(feature = "zerocopy")]
+    static STATIC_ZC: [ComplexZC; 1024] = [ComplexZC {
+        a: 42,
+        b: [0; 4],
+        c: 9000
+    }; 1024];
+
+    #[cfg(feature = "zerocopy")]
+    #[kani::proof]
+    #[kani::unwind(16_385)]
+    pub fn check_static_zeroconf() {
+        let owner: &'static [ComplexZC] = &STATIC_ZC;
+        let bytes = Bytes::from_owner(owner);
+        let bytes_slice: &[u8] = &bytes;
+        assert_eq!(owner.as_bytes(), bytes_slice)
+    }
+
+    #[cfg(feature = "zerocopy")]
+    #[kani::proof]
+    #[kani::unwind(16_385)]
+    pub fn check_box_zeroconf() {
+        let owner: Box<[ComplexZC]> = STATIC_ZC.into();
+        let arc = Arc::new(owner);
+        let bytes = Bytes::from_arc(arc.clone());
+        let arc_slice: &[u8] = arc.as_bytes();
+        let bytes_slice: &[u8] = &bytes;
+        assert_eq!(arc_slice, bytes_slice)
+    }
+}

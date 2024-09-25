@@ -7,10 +7,10 @@ repository = "https://github.com/triblespace/anybytes"
 description = "A small library abstracting over bytes owning types in an extensible way."
 
 [dependencies]
-bytes = { version = "1.6.0", features = ["serde"], optional = true }
+bytes = { version = "1.6.0", optional = true }
 ownedbytes = { version = "0.7.0", optional = true }
 memmap2 = { version = "0.9.4", optional = true }
-zerocopy = { version = "0.7.35", optional = true }
+zerocopy = { version = "0.7.35", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 quickcheck = "1.0"
