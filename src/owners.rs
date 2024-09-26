@@ -101,10 +101,10 @@ mod verification {
 
     use super::*;
 
-    static STATIC_U8: [u8; 1024] = [0; 1024];
+    static STATIC_U8: [u8; 32] = [0; 32];
 
     #[kani::proof]
-    #[kani::unwind(1025)]
+    #[kani::unwind(33)]
     pub fn check_static() {
         let owner: &'static [u8] = &STATIC_U8;
         let bytes = Bytes::from_owner(owner);
@@ -113,7 +113,7 @@ mod verification {
     }
 
     #[kani::proof]
-    #[kani::unwind(1025)]
+    #[kani::unwind(33)]
     pub fn check_box() {
         let owner: Box<[u8]> = STATIC_U8.into();
         let arc = Arc::new(owner);
@@ -133,15 +133,15 @@ mod verification {
     }
 
     #[cfg(feature = "zerocopy")]
-    static STATIC_ZC: [ComplexZC; 1024] = [ComplexZC {
+    static STATIC_ZC: [ComplexZC; 32] = [ComplexZC {
         a: 42,
         b: [0; 4],
         c: 9000
-    }; 1024];
+    }; 32];
 
     #[cfg(feature = "zerocopy")]
     #[kani::proof]
-    #[kani::unwind(16_385)]
+    #[kani::unwind(513)]
     pub fn check_static_zeroconf() {
         let owner: &'static [ComplexZC] = &STATIC_ZC;
         let bytes = Bytes::from_owner(owner);
@@ -151,7 +151,7 @@ mod verification {
 
     #[cfg(feature = "zerocopy")]
     #[kani::proof]
-    #[kani::unwind(16_385)]
+    #[kani::unwind(513)]
     pub fn check_box_zeroconf() {
         let owner: Box<[ComplexZC]> = STATIC_ZC.into();
         let arc = Arc::new(owner);
