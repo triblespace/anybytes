@@ -1,3 +1,5 @@
+** This Library is still pre-1.0.0 the API is therefore in heavy flux! **
+
 A small byte management library, that can abstract over various byte owning types, like `Vec`, `bytes::Bytes`, or `memmap2::Mmap`.
 
 ## Comparison
