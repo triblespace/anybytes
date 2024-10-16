@@ -116,22 +116,21 @@ impl TryFrom<&Bytes> for PackedStr {
 
 #[cfg(test)]
 mod test {
-    use crate::PackedSlice;
+    use crate::PackedStr;
 
     #[test]
     fn roundtrip_copy() {
-        let v: Vec<usize> = vec![1, 2, 3, 4];
-        let p = PackedSlice::copy_from(&v);
-        let vr: &[_] = v.as_ref();
-        let pr: &[usize] = p.as_ref();
-        assert_eq!(vr, pr)
+        let v = "hello world!";
+        let p = PackedStr::copy_from(&v);
+        let pr: &str = p.as_ref();
+        assert_eq!(v, pr)
     }
 
     #[test]
     fn roundtrip() {
-        let v: Vec<usize> = vec![1, 2, 3, 4];
-        let p: PackedSlice<_> = v.clone().into();
-        let r: &[_] = &p;
-        assert_eq!(v.as_slice(), r)
+        let v: String = "hello world!".to_string();
+        let p: PackedStr = v.clone().into();
+        let r: &str = &p;
+        assert_eq!(&v, r)
     }
 }
