@@ -57,14 +57,26 @@ impl<T: ByteOwner> AnyByteOwner for T {
 }
 
 /// Immutable bytes with zero-copy slicing and cloning.
+/// 
+/// Access itself is extremely cheap via no-op conversion to a `&[u8]`.
+/// 
+/// The storage mechanism backing the bytes can be extended
+/// and is implemented for a variety of sources already,
+/// including other byte handling crates `Bytes`, mmap-ed files,
+/// `String`s and `Zerocopy` types.
+/// 
+/// See [ByteOwner] for an exhaustive list and more details.
 pub struct Bytes {
     pub(crate) data: &'static [u8],
     // Actual owner of the bytes.
     pub(crate) owner: Arc<dyn AnyByteOwner>,
 }
 
-/// Weak variant of Bytes that doesn't retain the data
-/// unless a strong Bytes is referencing it.
+/// Weak variant of [Bytes] that doesn't retain the data
+/// unless a strong [Bytes] is referencing it.
+/// 
+/// The referenced subrange of the [Bytes] is reconstructed
+/// on [WeakBytes::upgrade].
 pub struct WeakBytes {
     pub(crate) range: Range<usize>,
     // Actual owner of the bytes.
