@@ -72,6 +72,12 @@ unsafe impl ByteOwner for String {
     }
 }
 
+unsafe impl ByteOwner for &'static str {
+    fn as_bytes(&self) -> &[u8] {
+        (*self).as_bytes()
+    }
+}
+
 #[cfg(feature = "bytes")]
 unsafe impl ByteOwner for bytes::Bytes {
     fn as_bytes(&self) -> &[u8] {

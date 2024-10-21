@@ -219,12 +219,6 @@ impl<T: ByteOwner> From<Arc<T>> for Bytes {
     }
 }
 
-impl From<&'static str> for Bytes {
-    fn from(value: &'static str) -> Self {
-        Self::from_owner(value.as_bytes())
-    }
-}
-
 impl AsRef<[u8]> for Bytes {
     #[inline]
     fn as_ref(&self) -> &[u8] {
