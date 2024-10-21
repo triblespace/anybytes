@@ -21,6 +21,10 @@ impl<T> PackedSlice<T> {
         }
     }
 
+    pub fn unwrap(self) -> Bytes {
+        self.bytes
+    }
+
     pub fn bytes(&self) -> Bytes {
         self.bytes.clone()
     }
