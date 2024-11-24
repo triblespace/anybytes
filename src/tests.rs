@@ -28,10 +28,10 @@ quickcheck! {
 fn test_downcast() {
     let v = b"abcd".to_vec();
     let b = Bytes::from(v);
-    assert!(b.downcast::<Vec<u8>>().is_some());
+    assert!(b.downcast_to_owner::<Vec<u8>>().is_some());
     let v = b"abcd".to_vec();
     let b = Bytes::from(v);
-    assert!(b.downcast::<String>().is_none());
+    assert!(b.downcast_to_owner::<String>().is_none());
 }
 
 #[test]

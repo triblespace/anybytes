@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
- #![doc = include_str!("../README.md")]
+#![doc = include_str!("../README.md")]
 
 pub mod bytes;
 mod owners;
@@ -17,7 +17,7 @@ pub mod packed;
 #[cfg(test)]
 mod tests;
 
-pub use crate::bytes::ByteOwner;
+pub use crate::bytes::ByteSource;
 pub use crate::bytes::Bytes;
 pub use crate::bytes::WeakBytes;
 #[cfg(feature = "zerocopy")]

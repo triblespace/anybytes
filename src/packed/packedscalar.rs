@@ -1,4 +1,4 @@
-use crate::{ByteOwner, Bytes};
+use crate::{bytes::ByteOwner, ByteSource, Bytes};
 use std::{fmt::Debug, hash::Hash, marker::PhantomData, ops::Deref, sync::Arc};
 use zerocopy::{AsBytes, FromBytes};
 
@@ -16,7 +16,7 @@ impl<T> Packed<T> {
     {
         let bx: Box<[u8]> = value.as_bytes().into();
         Packed {
-            bytes: Bytes::from_owner(bx),
+            bytes: Bytes::from_owning_source(bx),
             _type: PhantomData,
         }
     }
@@ -61,13 +61,13 @@ where
     }
 }
 
-impl<O, T> From<O> for Packed<T>
+impl<S, T> From<S> for Packed<T>
 where
-    O: ByteOwner + AsRef<T>,
+    S: ByteSource + AsRef<T>,
 {
-    fn from(value: O) -> Self {
+    fn from(value: S) -> Self {
         Packed {
-            bytes: Bytes::from_owner(value),
+            bytes: Bytes::from_source(value),
             _type: PhantomData,
         }
     }
@@ -75,11 +75,11 @@ where
 
 impl<O, T> From<Arc<O>> for Packed<T>
 where
-    O: ByteOwner + AsRef<T>,
+    O: ByteSource + ByteOwner + AsRef<T>,
 {
     fn from(value: Arc<O>) -> Self {
         Packed {
-            bytes: Bytes::from_arc(value),
+            bytes: Bytes::from_owning_source_arc(value),
             _type: PhantomData,
         }
     }

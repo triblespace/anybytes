@@ -1,6 +1,6 @@
 use std::{fmt::Debug, hash::Hash, ops::Deref, str::Utf8Error, sync::Arc};
 
-use crate::{ByteOwner, Bytes};
+use crate::{bytes::ByteOwner, ByteSource, Bytes};
 
 pub struct PackedStr {
     bytes: Bytes,
@@ -10,7 +10,7 @@ impl PackedStr {
     pub fn copy_from(value: &str) -> Self {
         let bx: Box<[u8]> = value.as_bytes().into();
         PackedStr {
-            bytes: Bytes::from_owner(bx),
+            bytes: Bytes::from_source(bx),
         }
     }
 
@@ -79,24 +79,24 @@ impl Hash for PackedStr {
     }
 }
 
-impl<O> From<O> for PackedStr
+impl<S> From<S> for PackedStr
 where
-    O: ByteOwner + AsRef<str>,
+    S: ByteSource + AsRef<str>,
 {
-    fn from(value: O) -> Self {
+    fn from(value: S) -> Self {
         PackedStr {
-            bytes: Bytes::from_owner(value),
+            bytes: Bytes::from_source(value),
         }
     }
 }
 
 impl<O> From<Arc<O>> for PackedStr
 where
-    O: ByteOwner + AsRef<str>,
+    O: ByteSource + ByteOwner + AsRef<str>,
 {
     fn from(value: Arc<O>) -> Self {
         PackedStr {
-            bytes: Bytes::from_arc(value),
+            bytes: Bytes::from_owning_source_arc(value),
         }
     }
 }

@@ -11,14 +11,14 @@ including other byte handling crates `Bytes`, mmap-ed files,
 
 ## Comparison
 
-| Crate | Active | Extensible | Zerocopy Integration | mmap support | kani verified |
-| ----- | ------ | ---------- | -------------------- | ------------ | -------- |
-| anybytes | ✅ | ✅ | ✅ | ✅ | 🚧 |
-| [bytes](https://crates.io/crates/bytes) | ✅ | ✅ | ❌ | ❌ | ❌ |
-| [ownedbytes](https://crates.io/crates/ownedbytes) | ✅ | ✅ | ❌ | ✅ | ❌ |
-| [minibytes](https://crates.io/crates/esl01-minibytes) | ❌[^1] | ✅ | ❌ | ✅ | ❌ |
+| Crate | Active | Extensible | mmap support | Zerocopy Integration | Pyo3 Integration | kani verified |
+| ----- | ------ | ---------- | ------------ | -------------------- | ---------------- | -------- |
+| anybytes | ✅ | ✅ | ✅ | ✅ | ✅ | 🚧 |
+| [bytes](https://crates.io/crates/bytes) | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| [ownedbytes](https://crates.io/crates/ownedbytes) | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| [minibytes](https://crates.io/crates/sapling-minibytes) | ✅[^1] | ✅ | ✅ | ❌ | ❌ | ❌ |
 
-[^1]: No longer maintained as an individual crate.
+[^1]: Recently published again.
 
 ## Acknowledgements
 This library started as a fork of the minibyte library in facebooks [sapling scm](https://github.com/facebook/sapling).

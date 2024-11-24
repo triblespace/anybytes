@@ -18,7 +18,9 @@ pub enum PackError {
 
 impl Bytes {
     pub fn packed_prefix<T>(&mut self) -> Option<Packed<T>>
-    where T: FromBytes {
+    where
+        T: FromBytes,
+    {
         let slice = self.as_slice();
         let size = size_of::<T>();
         let (data, rest) = slice.split_at(size);
@@ -30,7 +32,9 @@ impl Bytes {
     }
 
     pub fn packedslice_prefix<T>(&mut self, count: usize) -> Option<PackedSlice<T>>
-    where T: FromBytes {
+    where
+        T: FromBytes,
+    {
         let slice = self.as_slice();
         let size = size_of::<T>() * count;
         let (data, rest) = slice.split_at(size);
@@ -42,7 +46,9 @@ impl Bytes {
     }
 
     pub fn packedstr_prefix<T>(&mut self, count: usize) -> Option<PackedStr>
-    where T: FromBytes {
+    where
+        T: FromBytes,
+    {
         let slice = self.as_slice();
         let size = size_of::<T>() * count;
         let (data, rest) = slice.split_at(size);
@@ -54,7 +60,9 @@ impl Bytes {
     }
 
     pub fn packed_suffix<T>(&mut self) -> Option<Packed<T>>
-    where T: FromBytes {
+    where
+        T: FromBytes,
+    {
         let slice = self.as_slice();
         let size = size_of::<T>();
         let (data, rest) = slice.split_at(slice.len() - size);
@@ -66,7 +74,9 @@ impl Bytes {
     }
 
     pub fn packedslice_suffix<T>(&mut self, count: usize) -> Option<PackedSlice<T>>
-    where T: FromBytes {
+    where
+        T: FromBytes,
+    {
         let slice = self.as_slice();
         let size = size_of::<T>() * count;
         let (data, rest) = slice.split_at(slice.len() - size);

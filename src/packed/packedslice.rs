@@ -1,7 +1,7 @@
 use std::{fmt::Debug, hash::Hash, marker::PhantomData, ops::Deref, sync::Arc};
 
 use super::PackError;
-use crate::{ByteOwner, Bytes};
+use crate::{bytes::ByteOwner, ByteSource, Bytes};
 use zerocopy::{AsBytes, FromBytes};
 
 pub struct PackedSlice<T> {
@@ -16,7 +16,7 @@ impl<T> PackedSlice<T> {
     {
         let bx: Box<[u8]> = value.as_bytes().into();
         PackedSlice {
-            bytes: Bytes::from_owner(bx),
+            bytes: Bytes::from_source(bx),
             _type: PhantomData,
         }
     }
@@ -61,13 +61,13 @@ where
     }
 }
 
-impl<O, T> From<O> for PackedSlice<T>
+impl<S, T> From<S> for PackedSlice<T>
 where
-    O: ByteOwner + AsRef<[T]>,
+    S: ByteSource + AsRef<[T]>,
 {
-    fn from(value: O) -> Self {
+    fn from(value: S) -> Self {
         PackedSlice {
-            bytes: Bytes::from_owner(value),
+            bytes: Bytes::from_source(value),
             _type: PhantomData,
         }
     }
@@ -75,11 +75,11 @@ where
 
 impl<O, T> From<Arc<O>> for PackedSlice<T>
 where
-    O: ByteOwner + AsRef<[T]>,
+    O: ByteSource + ByteOwner + AsRef<[T]>,
 {
     fn from(value: Arc<O>) -> Self {
         PackedSlice {
-            bytes: Bytes::from_arc(value),
+            bytes: Bytes::from_owning_source_arc(value),
             _type: PhantomData,
         }
     }
