@@ -31,8 +31,14 @@ where
 
 #[cfg(not(feature = "zerocopy"))]
 unsafe impl ByteSource for &'static [u8] {
+    type Owner = Self;
+
     fn as_bytes(&self) -> &[u8] {
         *self
+    }
+        
+    fn as_owner(self) -> Self::Owner {
+        self
     }
 }
 
@@ -55,8 +61,14 @@ where
 
 #[cfg(not(feature = "zerocopy"))]
 unsafe impl ByteSource for Box<[u8]> {
+    type Owner = Self;
+
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
+    }
+        
+    fn as_owner(self) -> Self::Owner {
+        self
     }
 }
 
@@ -79,8 +91,14 @@ where
 
 #[cfg(not(feature = "zerocopy"))]
 unsafe impl ByteSource for Vec<u8> {
+    type Owner = Self;
+
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
+    }
+        
+    fn as_owner(self) -> Self::Owner {
+        todo!()
     }
 }
 
