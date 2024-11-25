@@ -102,7 +102,6 @@ impl Bytes {
         let owner = Arc::new(owner);
 
         Self {
-            // This is safe because slices always have a non-null address.
             data,
             owner,
         }
@@ -110,8 +109,14 @@ impl Bytes {
 
     /// Creates `Bytes` from a [`ByteOwner`] + [`ByteSource`] (for example, `Vec<u8>`).
     pub fn from_owning_source(owner: impl ByteSource + ByteOwner) -> Self {
-        let arc = Arc::new(owner);
-        Self::from_owning_source_arc(arc)
+        let owner = Arc::new(owner);
+        let data = owner.as_bytes();
+        // Erase the lifetime.
+        let data = unsafe { erase_lifetime(data) };
+        Self {
+            data,
+            owner,
+        }
     }
 
     /// Creates `Bytes` from an `Arc<ByteSource + ByteOwner>`.
@@ -126,7 +131,6 @@ impl Bytes {
         // Erase the lifetime.
         let data = unsafe { erase_lifetime(data) };
         Self {
-            // This is safe because slices always have a non-null address.
             data,
             owner: arc,
         }

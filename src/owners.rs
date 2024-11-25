@@ -197,7 +197,7 @@ mod verification {
     #[kani::unwind(33)]
     pub fn check_static() {
         let owner: &'static [u8] = &STATIC_U8;
-        let bytes = Bytes::from_owner(owner);
+        let bytes = Bytes::from_owning_source(owner);
         let bytes_slice: &[u8] = &bytes;
         assert_eq!(owner, bytes_slice)
     }
@@ -207,7 +207,7 @@ mod verification {
     pub fn check_box() {
         let owner: Box<[u8]> = STATIC_U8.into();
         let arc = Arc::new(owner);
-        let bytes = Bytes::from_arc(arc.clone());
+        let bytes = Bytes::from_owning_source_arc(arc.clone());
         let arc_slice: &[u8] = &arc;
         let bytes_slice: &[u8] = &bytes;
         assert_eq!(arc_slice, bytes_slice)
@@ -233,8 +233,10 @@ mod verification {
     #[kani::proof]
     #[kani::unwind(513)]
     pub fn check_static_zeroconf() {
+        use crate::Bytes;
+
         let owner: &'static [ComplexZC] = &STATIC_ZC;
-        let bytes = Bytes::from_owner(owner);
+        let bytes = Bytes::from_owning_source(owner);
         let bytes_slice: &[u8] = &bytes;
         assert_eq!(owner.as_bytes(), bytes_slice)
     }
@@ -243,9 +245,11 @@ mod verification {
     #[kani::proof]
     #[kani::unwind(513)]
     pub fn check_box_zeroconf() {
+        use crate::Bytes;
+
         let owner: Box<[ComplexZC]> = STATIC_ZC.into();
         let arc = Arc::new(owner);
-        let bytes = Bytes::from_arc(arc.clone());
+        let bytes = Bytes::from_owning_source_arc(arc.clone());
         let arc_slice: &[u8] = arc.as_bytes();
         let bytes_slice: &[u8] = &bytes;
         assert_eq!(arc_slice, bytes_slice)
