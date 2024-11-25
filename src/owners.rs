@@ -6,8 +6,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-//! Implement [`ByteOwner`] and [`TextOwner`] for common types.
-
 #[cfg(feature = "zerocopy")]
 use zerocopy::AsBytes;
 
