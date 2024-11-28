@@ -14,6 +14,9 @@ mod owners;
 #[cfg(feature = "zerocopy")]
 pub mod packed;
 
+#[cfg(feature = "pyo3")]
+pub mod pybytes;
+
 #[cfg(test)]
 mod tests;
 
@@ -26,3 +29,5 @@ pub use crate::packed::Packed;
 pub use crate::packed::PackedSlice;
 #[cfg(feature = "zerocopy")]
 pub use crate::packed::PackedStr;
+#[cfg(feature = "pyo3")]
+pub use crate::pybytes::PyBytes;
