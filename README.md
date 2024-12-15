@@ -22,3 +22,5 @@ including other byte handling crates `Bytes`, mmap-ed files,
 
 ## Acknowledgements
 This library started as a fork of the minibyte library in facebooks [sapling scm](https://github.com/facebook/sapling).
+
+Thanks to @kylebarron for his feedback and ideas on Pyo3 integration.
