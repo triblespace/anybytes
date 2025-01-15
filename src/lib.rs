@@ -20,8 +20,8 @@ pub mod pybytes;
 #[cfg(test)]
 mod tests;
 
-pub use crate::bytes::ByteSource;
 pub use crate::bytes::ByteOwner;
+pub use crate::bytes::ByteSource;
 pub use crate::bytes::Bytes;
 pub use crate::bytes::WeakBytes;
 #[cfg(feature = "zerocopy")]

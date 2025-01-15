@@ -21,7 +21,7 @@ where
     fn as_bytes(&self) -> &[u8] {
         AsBytes::as_bytes(*self)
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -34,7 +34,7 @@ unsafe impl ByteSource for &'static [u8] {
     fn as_bytes(&self) -> &[u8] {
         *self
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -51,7 +51,7 @@ where
         let inner = self.as_ref();
         AsBytes::as_bytes(inner)
     }
-    
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -64,7 +64,7 @@ unsafe impl ByteSource for Box<[u8]> {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -81,7 +81,7 @@ where
         let slice: &[T] = self.as_ref();
         AsBytes::as_bytes(slice)
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -94,7 +94,7 @@ unsafe impl ByteSource for Vec<u8> {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -106,7 +106,7 @@ unsafe impl ByteSource for String {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -118,7 +118,7 @@ unsafe impl ByteSource for &'static str {
     fn as_bytes(&self) -> &[u8] {
         (*self).as_bytes()
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -131,7 +131,7 @@ unsafe impl ByteSource for bytes::Bytes {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -144,7 +144,7 @@ unsafe impl ByteSource for ownedbytes::OwnedBytes {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }
@@ -157,7 +157,7 @@ unsafe impl ByteSource for memmap2::Mmap {
     fn as_bytes(&self) -> &[u8] {
         self.as_ref()
     }
-        
+
     fn get_owner(self) -> Self::Owner {
         self
     }

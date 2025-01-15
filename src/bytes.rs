@@ -93,10 +93,7 @@ impl Bytes {
     }
 
     pub unsafe fn from_raw_parts(data: &'static [u8], owner: Arc<dyn ByteOwner>) -> Self {
-        Self {
-            data,
-            owner,
-        }
+        Self { data, owner }
     }
 
     /// Creates `Bytes` from a [`ByteSource`] (for example, `Vec<u8>`).
@@ -108,10 +105,7 @@ impl Bytes {
         let owner = source.get_owner();
         let owner = Arc::new(owner);
 
-        Self {
-            data,
-            owner,
-        }
+        Self { data, owner }
     }
 
     /// Creates `Bytes` from an `Arc<ByteSource + ByteOwner>`.
@@ -125,10 +119,7 @@ impl Bytes {
         let data = arc.as_bytes();
         // Erase the lifetime.
         let data = unsafe { erase_lifetime(data) };
-        Self {
-            data,
-            owner: arc,
-        }
+        Self { data, owner: arc }
     }
 
     #[inline]

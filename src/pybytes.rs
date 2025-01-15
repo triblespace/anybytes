@@ -1,11 +1,11 @@
-use pyo3::{prelude::*, ffi, PyResult};
+use pyo3::{ffi, prelude::*, PyResult};
 use std::os::raw::c_int;
 
 use crate::Bytes;
 
 #[pyclass(name = "Bytes")]
 pub struct PyBytes {
-    bytes: Bytes
+    bytes: Bytes,
 }
 
 #[pymethods]
