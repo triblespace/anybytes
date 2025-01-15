@@ -92,6 +92,13 @@ impl Bytes {
         Self::from_owning_source(&[0u8; 0][..])
     }
 
+    pub unsafe fn from_raw_parts(data: &'static [u8], owner: Arc<dyn ByteOwner>) -> Self {
+        Self {
+            data,
+            owner,
+        }
+    }
+
     /// Creates `Bytes` from a [`ByteSource`] (for example, `Vec<u8>`).
     pub fn from_source(source: impl ByteSource) -> Self {
         let data = source.as_bytes();
