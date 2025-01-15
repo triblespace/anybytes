@@ -22,7 +22,7 @@ where
         AsBytes::as_bytes(*self)
     }
         
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -35,7 +35,7 @@ unsafe impl ByteSource for &'static [u8] {
         *self
     }
         
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -52,7 +52,7 @@ where
         AsBytes::as_bytes(inner)
     }
     
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -65,7 +65,7 @@ unsafe impl ByteSource for Box<[u8]> {
         self.as_ref()
     }
         
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -82,7 +82,7 @@ where
         AsBytes::as_bytes(slice)
     }
         
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -95,8 +95,8 @@ unsafe impl ByteSource for Vec<u8> {
         self.as_ref()
     }
         
-    fn as_owner(self) -> Self::Owner {
-        todo!()
+    fn get_owner(self) -> Self::Owner {
+        self
     }
 }
 
@@ -107,7 +107,7 @@ unsafe impl ByteSource for String {
         self.as_ref()
     }
         
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -119,7 +119,7 @@ unsafe impl ByteSource for &'static str {
         (*self).as_bytes()
     }
         
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -132,7 +132,7 @@ unsafe impl ByteSource for bytes::Bytes {
         self.as_ref()
     }
         
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -145,7 +145,7 @@ unsafe impl ByteSource for ownedbytes::OwnedBytes {
         self.as_ref()
     }
         
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -158,7 +158,7 @@ unsafe impl ByteSource for memmap2::Mmap {
         self.as_ref()
     }
         
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self
     }
 }
@@ -178,7 +178,7 @@ unsafe impl<'py> ByteSource for pyo3::Bound<'py, pyo3::types::PyBytes> {
         pyo3::types::PyBytesMethods::as_bytes(self)
     }
 
-    fn as_owner(self) -> Self::Owner {
+    fn get_owner(self) -> Self::Owner {
         self.unbind()
     }
 }

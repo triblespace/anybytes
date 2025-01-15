@@ -33,7 +33,7 @@ pub unsafe trait ByteSource {
     type Owner: ByteOwner;
 
     fn as_bytes(&self) -> &[u8];
-    fn as_owner(self) -> Self::Owner;
+    fn get_owner(self) -> Self::Owner;
 }
 pub trait ByteOwner: Sync + Send + 'static {
     fn as_any(self: Arc<Self>) -> Arc<dyn Any + Sync + Send>;
@@ -98,7 +98,7 @@ impl Bytes {
         // Erase the lifetime.
         let data = unsafe { erase_lifetime(data) };
 
-        let owner = source.as_owner();
+        let owner = source.get_owner();
         let owner = Arc::new(owner);
 
         Self {
