@@ -16,7 +16,7 @@ impl<T> Packed<T> {
     {
         let bx: Box<[u8]> = value.as_bytes().into();
         Packed {
-            bytes: Bytes::from_owning_source(bx),
+            bytes: Bytes::from_source(bx),
             _type: PhantomData,
         }
     }

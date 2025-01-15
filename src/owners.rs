@@ -196,10 +196,10 @@ mod verification {
     #[kani::proof]
     #[kani::unwind(33)]
     pub fn check_static() {
-        let owner: &'static [u8] = &STATIC_U8;
-        let bytes = Bytes::from_owning_source(owner);
+        let source: &'static [u8] = &STATIC_U8;
+        let bytes = Bytes::from_source(source);
         let bytes_slice: &[u8] = &bytes;
-        assert_eq!(owner, bytes_slice)
+        assert_eq!(source, bytes_slice)
     }
 
     #[kani::proof]
@@ -236,7 +236,7 @@ mod verification {
         use crate::Bytes;
 
         let owner: &'static [ComplexZC] = &STATIC_ZC;
-        let bytes = Bytes::from_owning_source(owner);
+        let bytes = Bytes::from_source(owner);
         let bytes_slice: &[u8] = &bytes;
         assert_eq!(owner.as_bytes(), bytes_slice)
     }
