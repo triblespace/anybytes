@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) Jan-Paul Bultmann
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 use pyo3::{ffi, prelude::*, PyResult};
 use std::os::raw::c_int;
 
