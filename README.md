@@ -1,4 +1,4 @@
-**This Library is still pre-1.0.0 the API is therefore in heavy flux!**
+**This Library is still pre-0.1.0 the API is therefore in heavy flux, and everything should be considered alpha!**
 
 A small library for conveniently working with immutables bytes from different sources, providing zero-copy slicing and cloning.
 
