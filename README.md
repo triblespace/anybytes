@@ -18,8 +18,7 @@ including other byte handling crates `Bytes`, mmap-ed files,
 | [ownedbytes](https://crates.io/crates/ownedbytes) | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | [minibytes](https://crates.io/crates/sapling-minibytes) | ✅[^2] | ✅ | ✅ | ❌ | ❌ | ❌ |
 
-[^1]: It is still using a V-Table under the hood, with a new "Owned Bytes" variant,
-with all the downsides/overhead of a V-Table remaining.
+[^1]: Recently added a new "Owned Bytes" variant, which still has all the downsides of a V-Table.
 [^2]: Recently published again.
 
 ## Acknowledgements
