@@ -14,7 +14,7 @@ including other byte handling crates `Bytes`, mmap-ed files,
 | Crate | Active | Extensible | mmap support | Zerocopy Integration | Pyo3 Integration | kani verified |
 | ----- | ------ | ---------- | ------------ | -------------------- | ---------------- | -------- |
 | anybytes | ✅ | ✅ | ✅ | ✅ | ✅ | 🚧 |
-| [bytes](https://crates.io/crates/bytes) | ✅ | ✅ | ✅[^1] | ✅[^1] | ❌ | ❌ |
+| [bytes](https://crates.io/crates/bytes) | ✅ | ✅ | ✅[^1] | ❌ | ❌ | ❌ |
 | [ownedbytes](https://crates.io/crates/ownedbytes) | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | [minibytes](https://crates.io/crates/sapling-minibytes) | ✅[^2] | ✅ | ✅ | ❌ | ❌ | ❌ |
 
