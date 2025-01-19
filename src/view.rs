@@ -109,14 +109,12 @@ impl Bytes {
     }
 }
 
- /// Immutable bytes with zero-copy slicing and cloning.
+ /// Immutable view with zero-copy field derive and cloning.
  ///
- /// Access itself is extremely cheap via no-op conversion to a `&[u8]`.
+ /// Access itself is the same as accessing a `&T`.
  ///
- /// The storage mechanism backing the bytes can be extended
- /// and is implemented for a variety of sources already,
- /// including other byte handling crates `Bytes`, mmap-ed files,
- /// `String`s and `Zerocopy` types.
+ /// Has a backing `ByteOwner` that retains the bytes until all views are dropped,
+ /// analogue to `Bytes`.
  ///
  /// See [ByteOwner] for an exhaustive list and more details.
  pub struct View<T: Immutable + ?Sized + 'static> {
@@ -125,10 +123,10 @@ impl Bytes {
      pub(crate) owner: Arc<dyn ByteOwner>,
  }
  
- /// Weak variant of [Bytes] that doesn't retain the data
- /// unless a strong [Bytes] is referencing it.
+ /// Weak variant of [View] that doesn't retain the data
+ /// unless a strong [View] is referencing it.
  ///
- /// The referenced subrange of the [Bytes] is reconstructed
+ /// The referenced subrange of the [View] is reconstructed
  /// on [WeakBytes::upgrade].
  pub struct WeakView<T: Immutable + ?Sized + 'static> {
      pub(crate) data: *const T,
@@ -148,7 +146,7 @@ impl Bytes {
      }
  }
  
- // Core implementation of Bytes.
+ // Core implementation of View.
  impl<T: Immutable> View<T> { 
      pub unsafe fn from_raw_parts(data: &'static T, owner: Arc<dyn ByteOwner>) -> Self {
          Self { data, owner }
