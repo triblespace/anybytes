@@ -12,7 +12,7 @@ pub mod bytes;
 mod owners;
 
 #[cfg(feature = "zerocopy")]
-pub mod packed;
+pub mod view;
 
 #[cfg(feature = "pyo3")]
 pub mod pybytes;
@@ -25,10 +25,10 @@ pub use crate::bytes::ByteSource;
 pub use crate::bytes::Bytes;
 pub use crate::bytes::WeakBytes;
 #[cfg(feature = "zerocopy")]
-pub use crate::packed::Packed;
-#[cfg(feature = "zerocopy")]
-pub use crate::packed::PackedSlice;
-#[cfg(feature = "zerocopy")]
-pub use crate::packed::PackedStr;
+pub use crate::view::View;
 #[cfg(feature = "pyo3")]
 pub use crate::pybytes::PyBytes;
+
+unsafe fn erase_lifetime<'a, T: ?Sized>(slice: &'a T) -> &'static T {
+    &*(slice as *const T)
+}

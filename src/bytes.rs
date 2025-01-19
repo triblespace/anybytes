@@ -8,25 +8,23 @@
 
 use std::any::Any;
 use std::ascii::escape_default;
-use std::borrow;
+use std::borrow::Borrow;
 use std::cmp;
 use std::fmt;
 use std::hash;
-use std::ops;
+use std::ops::Deref;
 use std::slice::SliceIndex;
 use std::sync::Arc;
 use std::sync::Weak;
 
-fn is_subslice(slice: &[u8], subslice: &[u8]) -> bool {
+use crate::erase_lifetime;
+
+pub(crate) fn is_subslice(slice: &[u8], subslice: &[u8]) -> bool {
     let slice_start = slice.as_ptr() as usize;
     let slice_end = slice_start + slice.len();
     let subslice_start = subslice.as_ptr() as usize;
     let subslice_end = subslice_start + subslice.len();
     subslice_start >= slice_start && subslice_end <= slice_end
-}
-
-unsafe fn erase_lifetime<'a>(slice: &'a [u8]) -> &'static [u8] {
-    &*(slice as *const [u8])
 }
 
 pub unsafe trait ByteSource {
@@ -56,9 +54,9 @@ impl<T: ByteSource + Sync + Send + 'static> ByteOwner for T {
 ///
 /// See [ByteOwner] for an exhaustive list and more details.
 pub struct Bytes {
-    pub(crate) data: &'static [u8],
+    data: &'static [u8],
     // Actual owner of the bytes.
-    pub(crate) owner: Arc<dyn ByteOwner>,
+    owner: Arc<dyn ByteOwner>,
 }
 
 /// Weak variant of [Bytes] that doesn't retain the data
@@ -67,8 +65,8 @@ pub struct Bytes {
 /// The referenced subrange of the [Bytes] is reconstructed
 /// on [WeakBytes::upgrade].
 pub struct WeakBytes {
-    pub(crate) data: *const [u8],
-    pub(crate) owner: Weak<dyn ByteOwner>,
+    data: *const [u8],
+    owner: Weak<dyn ByteOwner>,
 }
 
 // ByteOwner is Send + Sync and Bytes is immutable.
@@ -86,6 +84,26 @@ impl Clone for Bytes {
 
 // Core implementation of Bytes.
 impl Bytes {
+    #[inline]
+    pub(crate) unsafe fn get_data(&self) -> &'static [u8] {
+        self.data
+    }
+
+    #[inline]
+    pub(crate) unsafe fn set_data(&mut self, data: &'static [u8]) {
+        self.data = data;
+    }
+
+    #[inline]
+    pub(crate) fn get_owner(&self) -> Arc<dyn ByteOwner> {
+        self.owner.clone()
+    }
+
+    #[inline]
+    pub(crate) fn take_owner(self) -> Arc<dyn ByteOwner> {
+        self.owner
+    }
+
     /// Creates an empty `Bytes`.
     #[inline]
     pub fn empty() -> Self {
@@ -203,14 +221,7 @@ impl<T: ByteSource + ByteOwner> From<Arc<T>> for Bytes {
     }
 }
 
-impl AsRef<[u8]> for Bytes {
-    #[inline]
-    fn as_ref(&self) -> &[u8] {
-        self.as_slice()
-    }
-}
-
-impl ops::Deref for Bytes {
+impl Deref for Bytes {
     type Target = [u8];
     #[inline]
     fn deref(&self) -> &Self::Target {
@@ -221,15 +232,22 @@ impl ops::Deref for Bytes {
 #[cfg(feature = "ownedbytes")]
 unsafe impl ownedbytes::StableDeref for Bytes {}
 
-impl hash::Hash for Bytes {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.as_slice().hash(state);
+impl Borrow<[u8]> for Bytes {
+    fn borrow(&self) -> &[u8] {
+        self
     }
 }
 
-impl borrow::Borrow<[u8]> for Bytes {
-    fn borrow(&self) -> &[u8] {
-        self.as_slice()
+impl AsRef<[u8]> for Bytes {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        self
+    }
+}
+
+impl hash::Hash for Bytes {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.as_slice().hash(state);
     }
 }
 
@@ -239,17 +257,17 @@ impl Default for Bytes {
     }
 }
 
-impl<T: AsRef<[u8]>> PartialEq<T> for Bytes {
-    fn eq(&self, other: &T) -> bool {
-        self.as_slice() == other.as_ref()
+impl PartialEq for Bytes {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_slice() == other.as_slice()
     }
 }
 
 impl Eq for Bytes {}
 
-impl<T: AsRef<[u8]>> PartialOrd<T> for Bytes {
-    fn partial_cmp(&self, other: &T) -> Option<cmp::Ordering> {
-        self.as_slice().partial_cmp(other.as_ref())
+impl PartialOrd for Bytes {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        self.as_slice().partial_cmp(other.as_slice())
     }
 }
 

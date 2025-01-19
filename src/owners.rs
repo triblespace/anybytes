@@ -6,20 +6,22 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+use zerocopy::Immutable;
 #[cfg(feature = "zerocopy")]
-use zerocopy::AsBytes;
+use zerocopy::IntoBytes;
 
+#[allow(unused_imports)]
 use crate::{bytes::ByteOwner, ByteSource};
 
 #[cfg(feature = "zerocopy")]
 unsafe impl<T> ByteSource for &'static [T]
 where
-    T: AsBytes + Sync + Send + 'static,
+    T: IntoBytes + Immutable + Sync + Send + 'static,
 {
     type Owner = Self;
 
     fn as_bytes(&self) -> &[u8] {
-        AsBytes::as_bytes(*self)
+        IntoBytes::as_bytes(*self)
     }
 
     fn get_owner(self) -> Self::Owner {
@@ -43,13 +45,13 @@ unsafe impl ByteSource for &'static [u8] {
 #[cfg(feature = "zerocopy")]
 unsafe impl<T> ByteSource for Box<T>
 where
-    T: AsBytes + ?Sized + Sync + Send + 'static,
+    T: IntoBytes + Immutable + ?Sized + Sync + Send + 'static,
 {
     type Owner = Self;
 
     fn as_bytes(&self) -> &[u8] {
         let inner = self.as_ref();
-        AsBytes::as_bytes(inner)
+        IntoBytes::as_bytes(inner)
     }
 
     fn get_owner(self) -> Self::Owner {
@@ -73,13 +75,13 @@ unsafe impl ByteSource for Box<[u8]> {
 #[cfg(feature = "zerocopy")]
 unsafe impl<T> ByteSource for Vec<T>
 where
-    T: AsBytes + Sync + Send + 'static,
+    T: IntoBytes + Immutable + Sync + Send + 'static,
 {
     type Owner = Self;
 
     fn as_bytes(&self) -> &[u8] {
         let slice: &[T] = self.as_ref();
-        AsBytes::as_bytes(slice)
+        IntoBytes::as_bytes(slice)
     }
 
     fn get_owner(self) -> Self::Owner {
@@ -182,7 +184,6 @@ unsafe impl<'py> ByteSource for pyo3::Bound<'py, pyo3::types::PyBytes> {
         self.unbind()
     }
 }
-
 #[cfg(kani)]
 mod verification {
     use std::sync::Arc;
@@ -214,7 +215,7 @@ mod verification {
     }
 
     #[cfg(feature = "zerocopy")]
-    #[derive(zerocopy::FromZeroes, zerocopy::FromBytes, zerocopy::AsBytes, Clone, Copy)]
+    #[derive(zerocopy::FromZeroes, zerocopy::FromBytes, zerocopy::IntoBytes, Clone, Copy)]
     #[repr(C)]
     struct ComplexZC {
         a: u64,
