@@ -1,3 +1,7 @@
+![Crates.io Version](https://img.shields.io/crates/v/anybytes)
+![docs.rs](https://img.shields.io/docsrs/anybytes)
+![Discord Shield](https://discordapp.com/api/guilds/795317845181464651/widget.png?style=shield)
+
 **This Library is still pre-0.1.0 the API is therefore in heavy flux, and everything should be considered alpha!**
 
 A small library for conveniently working with immutables bytes from different sources, providing zero-copy slicing and cloning.
