@@ -193,26 +193,34 @@ impl Bytes {
 
     /// Returns a `Bytes` with the first `len` bytes of `self`.
     /// Modifies `self` to contain the remaining bytes.
+    /// Returns `None` if `len` is greater than the length of `self`.
     /// This operation is `O(1)`.
-    pub fn take_prefix(&mut self, len: usize) -> Self {
+    pub fn take_prefix(&mut self, len: usize) -> Option<Self> {
+        if len > self.data.len() {
+            return None;
+        }
         let (data, rest) = self.data.split_at(len);
         self.data = rest;
-        Self {
+        Some(Self {
             data,
             owner: self.owner.clone(),
-        }
+        })
     }
 
     /// Returns a `Bytes` with the last `len` bytes of `self`.
     /// Modifies `self` to contain the remaining bytes.
+    /// Returns `None` if `len` is greater than the length of `self`.
     /// This operation is `O(1)`.
-    pub fn take_suffix(&mut self, len: usize) -> Self {
+    pub fn take_suffix(&mut self, len: usize) -> Option<Self> {
+        if len > self.data.len() {
+            return None;
+        }
         let (rest, data) = self.data.split_at(self.data.len() - len);
         self.data = rest;
-        Self {
+        Some(Self {
             data,
             owner: self.owner.clone(),
-        }
+        })
     }
 
     /// Create a weak pointer.
