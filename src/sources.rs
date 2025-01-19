@@ -215,7 +215,7 @@ mod verification {
     }
 
     #[cfg(feature = "zerocopy")]
-    #[derive(zerocopy::FromZeroes, zerocopy::FromBytes, zerocopy::IntoBytes, Clone, Copy)]
+    #[derive(zerocopy::TryFromBytes, zerocopy::IntoBytes, zerocopy::Immutable, Clone, Copy)]
     #[repr(C)]
     struct ComplexZC {
         a: u64,

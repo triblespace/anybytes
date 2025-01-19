@@ -9,7 +9,7 @@
 #![doc = include_str!("../README.md")]
 
 pub mod bytes;
-mod owners;
+mod sources;
 
 #[cfg(feature = "zerocopy")]
 pub mod view;
