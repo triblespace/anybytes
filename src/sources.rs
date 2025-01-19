@@ -165,6 +165,13 @@ unsafe impl ByteSource for memmap2::Mmap {
     }
 }
 
+#[cfg(feature = "mmap")]
+impl ByteOwner for memmap2::MmapRaw {
+    fn as_any(self: std::sync::Arc<Self>) -> std::sync::Arc<dyn std::any::Any + Sync + Send> {
+        self
+    }
+}
+
 #[cfg(feature = "pyo3")]
 impl ByteOwner for pyo3::Py<pyo3::types::PyBytes> {
     fn as_any(self: std::sync::Arc<Self>) -> std::sync::Arc<dyn std::any::Any + Sync + Send> {
