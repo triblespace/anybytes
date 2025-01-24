@@ -172,9 +172,9 @@ impl Bytes {
  }
 
  impl<T: Immutable + IntoBytes> View<T> {
-    pub fn bytes(&self) -> Bytes {
+    pub fn bytes(self) -> Bytes {
         let bytes = IntoBytes::as_bytes(self.data);
-        unsafe { Bytes::from_raw_parts(bytes, self.owner.clone()) }
+        unsafe { Bytes::from_raw_parts(bytes, self.owner) }
     }
 
     /// Attempt to convert `reference` to a zero-copy subview of this `View`.
