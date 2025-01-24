@@ -171,7 +171,7 @@ impl Bytes {
      }
  }
 
- impl<T: Immutable + IntoBytes> View<T> {
+ impl<T: ?Sized + Immutable + IntoBytes> View<T> {
     pub fn bytes(self) -> Bytes {
         let bytes = IntoBytes::as_bytes(self.data);
         unsafe { Bytes::from_raw_parts(bytes, self.owner) }
