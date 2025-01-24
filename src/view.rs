@@ -12,9 +12,9 @@ use std::cmp::Ordering;
 use crate::bytes::is_subslice;
 use crate::erase_lifetime;
 use crate::{bytes::ByteOwner, Bytes};
+use std::sync::Weak;
 use std::{fmt::Debug, hash::Hash, ops::Deref, sync::Arc};
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryCastError, TryFromBytes};
-use std::sync::Weak;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ViewError {
@@ -24,11 +24,18 @@ pub enum ViewError {
 }
 
 impl ViewError {
-    pub(crate) fn from_cast_error<T: ?Sized + TryFromBytes>(bytes: &Bytes, err: TryCastError<&[u8], T>) -> Self {
+    pub(crate) fn from_cast_error<T: ?Sized + TryFromBytes>(
+        bytes: &Bytes,
+        err: TryCastError<&[u8], T>,
+    ) -> Self {
         match err {
-            TryCastError::Alignment(err) => Self::Alignment(bytes.slice_to_bytes(err.into_src()).unwrap()),
+            TryCastError::Alignment(err) => {
+                Self::Alignment(bytes.slice_to_bytes(err.into_src()).unwrap())
+            }
             TryCastError::Size(err) => Self::Size(bytes.slice_to_bytes(err.into_src()).unwrap()),
-            TryCastError::Validity(err) => Self::Validity(bytes.slice_to_bytes(err.into_src()).unwrap()),
+            TryCastError::Validity(err) => {
+                Self::Validity(bytes.slice_to_bytes(err.into_src()).unwrap())
+            }
         }
     }
 }
@@ -40,9 +47,10 @@ impl Bytes {
     {
         unsafe {
             match <T as TryFromBytes>::try_ref_from_bytes(self.get_data()) {
-                Ok(data) => {
-                    Ok(View { data, owner: self.take_owner() })
-                }
+                Ok(data) => Ok(View {
+                    data,
+                    owner: self.take_owner(),
+                }),
                 Err(err) => Err(ViewError::from_cast_error(&self, err)),
             }
         }
@@ -56,7 +64,10 @@ impl Bytes {
             match <T as TryFromBytes>::try_ref_from_prefix(self.get_data()) {
                 Ok((data, rest)) => {
                     self.set_data(rest);
-                    Ok(View { data, owner: self.get_owner() })
+                    Ok(View {
+                        data,
+                        owner: self.get_owner(),
+                    })
                 }
                 Err(err) => Err(ViewError::from_cast_error(self, err)),
             }
@@ -71,7 +82,10 @@ impl Bytes {
             match <T as TryFromBytes>::try_ref_from_prefix_with_elems(self.get_data(), count) {
                 Ok((data, rest)) => {
                     self.set_data(rest);
-                    Ok(View { data, owner: self.get_owner() })
+                    Ok(View {
+                        data,
+                        owner: self.get_owner(),
+                    })
                 }
                 Err(err) => Err(ViewError::from_cast_error(self, err)),
             }
@@ -86,7 +100,10 @@ impl Bytes {
             match <T as TryFromBytes>::try_ref_from_suffix(self.get_data()) {
                 Ok((rest, data)) => {
                     self.set_data(rest);
-                    Ok(View { data, owner: self.get_owner() })
+                    Ok(View {
+                        data,
+                        owner: self.get_owner(),
+                    })
                 }
                 Err(err) => Err(ViewError::from_cast_error(self, err)),
             }
@@ -101,7 +118,10 @@ impl Bytes {
             match <T as TryFromBytes>::try_ref_from_suffix_with_elems(self.get_data(), count) {
                 Ok((rest, data)) => {
                     self.set_data(rest);
-                    Ok(View { data, owner: self.get_owner() })
+                    Ok(View {
+                        data,
+                        owner: self.get_owner(),
+                    })
                 }
                 Err(err) => Err(ViewError::from_cast_error(self, err)),
             }
@@ -109,69 +129,69 @@ impl Bytes {
     }
 }
 
- /// Immutable view with zero-copy field derive and cloning.
- ///
- /// Access itself is the same as accessing a `&T`.
- ///
- /// Has a backing `ByteOwner` that retains the bytes until all views are dropped,
- /// analogue to `Bytes`.
- ///
- /// See [ByteOwner] for an exhaustive list and more details.
- pub struct View<T: Immutable + ?Sized + 'static> {
-     pub(crate) data: &'static T,
-     // Actual owner of the bytes.
-     pub(crate) owner: Arc<dyn ByteOwner>,
- }
- 
- /// Weak variant of [View] that doesn't retain the data
- /// unless a strong [View] is referencing it.
- ///
- /// The referenced subrange of the [View] is reconstructed
- /// on [WeakBytes::upgrade].
- pub struct WeakView<T: Immutable + ?Sized + 'static> {
-     pub(crate) data: *const T,
-     pub(crate) owner: Weak<dyn ByteOwner>,
- }
- 
- // ByteOwner is Send + Sync and View is immutable.
- unsafe impl<T: Immutable> Send for View<T> {}
- unsafe impl<T: Immutable> Sync for View<T> {}
- 
- impl<T: Immutable> Clone for View<T> {
-     fn clone(&self) -> Self {
-         Self {
-             data: self.data,
-             owner: self.owner.clone(),
-         }
-     }
- }
- 
- // Core implementation of View.
- impl<T: Immutable> View<T> { 
-     pub unsafe fn from_raw_parts(data: &'static T, owner: Arc<dyn ByteOwner>) -> Self {
-         Self { data, owner }
-     }
- 
-     /// Returns the owner of the View in an `Arc`.
-     pub fn downcast_to_owner<O>(self) -> Option<Arc<O>>
-     where
-         O: Send + Sync + 'static,
-     {
-         let owner = self.owner;
-         let owner = ByteOwner::as_any(owner);
-         owner.downcast::<O>().ok()
-     }
- 
-     /// Create a weak pointer.
-     pub fn downgrade(&self) -> WeakView<T> {
-         WeakView {
-             data: self.data as *const T,
-             owner: Arc::downgrade(&self.owner),
-         }
-     }
- }
+/// Immutable view with zero-copy field derive and cloning.
+///
+/// Access itself is the same as accessing a `&T`.
+///
+/// Has a backing `ByteOwner` that retains the bytes until all views are dropped,
+/// analogue to `Bytes`.
+///
+/// See [ByteOwner] for an exhaustive list and more details.
+pub struct View<T: Immutable + ?Sized + 'static> {
+    pub(crate) data: &'static T,
+    // Actual owner of the bytes.
+    pub(crate) owner: Arc<dyn ByteOwner>,
+}
 
- impl<T: ?Sized + Immutable + IntoBytes> View<T> {
+/// Weak variant of [View] that doesn't retain the data
+/// unless a strong [View] is referencing it.
+///
+/// The referenced subrange of the [View] is reconstructed
+/// on [WeakBytes::upgrade].
+pub struct WeakView<T: Immutable + ?Sized + 'static> {
+    pub(crate) data: *const T,
+    pub(crate) owner: Weak<dyn ByteOwner>,
+}
+
+// ByteOwner is Send + Sync and View is immutable.
+unsafe impl<T: ?Sized + Immutable> Send for View<T> {}
+unsafe impl<T: ?Sized + Immutable> Sync for View<T> {}
+
+impl<T: ?Sized + Immutable> Clone for View<T> {
+    fn clone(&self) -> Self {
+        Self {
+            data: self.data,
+            owner: self.owner.clone(),
+        }
+    }
+}
+
+// Core implementation of View.
+impl<T: ?Sized + Immutable> View<T> {
+    pub unsafe fn from_raw_parts(data: &'static T, owner: Arc<dyn ByteOwner>) -> Self {
+        Self { data, owner }
+    }
+
+    /// Returns the owner of the View in an `Arc`.
+    pub fn downcast_to_owner<O>(self) -> Option<Arc<O>>
+    where
+        O: Send + Sync + 'static,
+    {
+        let owner = self.owner;
+        let owner = ByteOwner::as_any(owner);
+        owner.downcast::<O>().ok()
+    }
+
+    /// Create a weak pointer.
+    pub fn downgrade(&self) -> WeakView<T> {
+        WeakView {
+            data: self.data as *const T,
+            owner: Arc::downgrade(&self.owner),
+        }
+    }
+}
+
+impl<T: ?Sized + Immutable + IntoBytes> View<T> {
     pub fn bytes(self) -> Bytes {
         let bytes = IntoBytes::as_bytes(self.data);
         unsafe { Bytes::from_raw_parts(bytes, self.owner) }
@@ -194,16 +214,16 @@ impl Bytes {
             None
         }
     }
- }
- 
- impl<T: Immutable> WeakView<T> {
-     /// The reverse of `downgrade`. Returns `None` if the value was dropped.
-     pub fn upgrade(&self) -> Option<View<T>> {
-         let arc = self.owner.upgrade()?;
-         let data = unsafe { &*(self.data) };
-         Some(View { data, owner: arc })
-     }
- }
+}
+
+impl<T: ?Sized + Immutable> WeakView<T> {
+    /// The reverse of `downgrade`. Returns `None` if the value was dropped.
+    pub fn upgrade(&self) -> Option<View<T>> {
+        let arc = self.owner.upgrade()?;
+        let data = unsafe { &*(self.data) };
+        Some(View { data, owner: arc })
+    }
+}
 
 impl<T> Deref for View<T>
 where
@@ -230,13 +250,13 @@ where
 impl<T> Borrow<T> for View<T>
 where
     T: ?Sized + Immutable,
-{   
+{
     fn borrow(&self) -> &T {
         self
     }
 }
 
-impl<T: PartialEq + Immutable> PartialEq for View<T> {
+impl<T: ?Sized + PartialEq + Immutable> PartialEq for View<T> {
     fn eq(&self, other: &Self) -> bool {
         let this: &T = self;
         let other: &T = other;
@@ -244,9 +264,9 @@ impl<T: PartialEq + Immutable> PartialEq for View<T> {
     }
 }
 
-impl<T: Eq + Immutable> Eq for View<T> {}
+impl<T: ?Sized + Eq + Immutable> Eq for View<T> {}
 
-impl<T: PartialOrd + Immutable> PartialOrd for View<T> {
+impl<T: ?Sized + PartialOrd + Immutable> PartialOrd for View<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let this: &T = self;
         let other: &T = other;
@@ -254,7 +274,7 @@ impl<T: PartialOrd + Immutable> PartialOrd for View<T> {
     }
 }
 
-impl<T: Ord + Immutable> Ord for View<T>  {
+impl<T: ?Sized + Ord + Immutable> Ord for View<T> {
     fn cmp(&self, other: &Self) -> Ordering {
         let this: &T = self;
         let other: &T = other;
@@ -298,10 +318,7 @@ mod tests {
     }
     #[test]
     fn niche_optimisation_option() {
-        assert_eq!(
-            size_of::<View<usize>>(),
-            size_of::<Option<View<usize>>>()
-        );
+        assert_eq!(size_of::<View<usize>>(), size_of::<Option<View<usize>>>());
     }
 
     #[test]
@@ -322,4 +339,3 @@ mod tests {
         assert_eq!(&value, view_value);
     }
 }
- 

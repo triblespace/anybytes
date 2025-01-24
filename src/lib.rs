@@ -24,10 +24,10 @@ pub use crate::bytes::ByteOwner;
 pub use crate::bytes::ByteSource;
 pub use crate::bytes::Bytes;
 pub use crate::bytes::WeakBytes;
-#[cfg(feature = "zerocopy")]
-pub use crate::view::View;
 #[cfg(feature = "pyo3")]
 pub use crate::pybytes::PyBytes;
+#[cfg(feature = "zerocopy")]
+pub use crate::view::View;
 
 unsafe fn erase_lifetime<'a, T: ?Sized>(slice: &'a T) -> &'static T {
     &*(slice as *const T)
