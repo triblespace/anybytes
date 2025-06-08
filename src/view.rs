@@ -26,9 +26,18 @@ pub enum ViewError {
 impl std::fmt::Display for ViewError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ViewError::Alignment(_) => write!(f, "failed to create view: The conversion source was improperly aligned."),
-            ViewError::Size(_) => write!(f, "failed to create view: The conversion source was of incorrect size."),
-            ViewError::Validity(_) => write!(f, "failed to create view: The conversion source contained invalid data."),
+            ViewError::Alignment(_) => write!(
+                f,
+                "failed to create view: The conversion source was improperly aligned."
+            ),
+            ViewError::Size(_) => write!(
+                f,
+                "failed to create view: The conversion source was of incorrect size."
+            ),
+            ViewError::Validity(_) => write!(
+                f,
+                "failed to create view: The conversion source contained invalid data."
+            ),
         }
     }
 }
