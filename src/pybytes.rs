@@ -11,6 +11,7 @@ use std::os::raw::c_int;
 
 use crate::Bytes;
 
+/// Python wrapper around [`Bytes`].
 #[pyclass(name = "Bytes")]
 pub struct PyBytes {
     bytes: Bytes,
@@ -18,6 +19,11 @@ pub struct PyBytes {
 
 #[pymethods]
 impl PyBytes {
+    /// Exposes the bytes to Python's buffer protocol.
+    ///
+    /// # Safety
+    /// This follows the semantics of the CPython `__getbuffer__` hook and is
+    /// therefore unsafe.
     unsafe fn __getbuffer__(
         slf: PyRefMut<Self>,
         view: *mut ffi::Py_buffer,

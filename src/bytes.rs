@@ -27,13 +27,31 @@ pub(crate) fn is_subslice(slice: &[u8], subslice: &[u8]) -> bool {
     subslice_start >= slice_start && subslice_end <= slice_end
 }
 
+/// A type that can provide its bytes and yield an owner for them.
+///
+/// Implementors of this trait serve as sources for [`Bytes`].  The slice
+/// returned by [`ByteSource::as_bytes`] must remain valid for as long as the
+/// source itself is alive **or** the [`ByteOwner`] obtained from
+/// [`ByteSource::get_owner`] is kept alive.  Splitting these capabilities lets
+/// callers obtain a byte slice and then drop any locks or guards by converting
+/// the source into its owner while still keeping the data valid.
+///
+/// The returned owner keeps the underlying data alive as long as any [`Bytes`]
+/// derived from it are in scope.
 pub unsafe trait ByteSource {
+    /// The type that owns the bytes.
     type Owner: ByteOwner;
 
+    /// Returns a view of the contained bytes.
     fn as_bytes(&self) -> &[u8];
+
+    /// Consumes the source and returns the owning value.
     fn get_owner(self) -> Self::Owner;
 }
+
+/// A trait for types that keep the backing bytes of [`Bytes`] alive.
 pub trait ByteOwner: Sync + Send + 'static {
+    /// Convert the owner into a type-erased [`Arc`] for downcasting.
     fn as_any(self: Arc<Self>) -> Arc<dyn Any + Sync + Send>;
 }
 
@@ -110,6 +128,11 @@ impl Bytes {
         Self::from_source(&[0u8; 0][..])
     }
 
+    /// Creates `Bytes` from an arbitrary slice and its owner.
+    ///
+    /// # Safety
+    /// The caller must ensure that `data` remains valid for the lifetime of
+    /// `owner`. No lifetime checks are performed.
     pub unsafe fn from_raw_parts(data: &'static [u8], owner: Arc<dyn ByteOwner>) -> Self {
         Self { data, owner }
     }

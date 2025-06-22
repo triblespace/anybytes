@@ -8,13 +8,16 @@
 
 #![doc = include_str!("../README.md")]
 
+/// Core byte container types and traits.
 pub mod bytes;
 mod sources;
 
 #[cfg(feature = "zerocopy")]
+/// Types for zero-copy viewing of structured data.
 pub mod view;
 
 #[cfg(feature = "pyo3")]
+/// Python bindings for [`Bytes`].
 pub mod pybytes;
 
 #[cfg(test)]
