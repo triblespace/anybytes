@@ -16,10 +16,14 @@ use std::sync::Weak;
 use std::{fmt::Debug, hash::Hash, ops::Deref, sync::Arc};
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryCastError, TryFromBytes};
 
+/// Errors that can occur when constructing a [`View`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ViewError {
+    /// The provided bytes were not properly aligned for the target type.
     Alignment(Bytes),
+    /// The provided bytes were of incorrect size for the target type.
     Size(Bytes),
+    /// The bytes contained invalid data for the target type.
     Validity(Bytes),
 }
 
@@ -62,6 +66,7 @@ impl ViewError {
 }
 
 impl Bytes {
+    /// Interpret the bytes as a view of `T`.
     pub fn view<T>(self) -> Result<View<T>, ViewError>
     where
         T: ?Sized + TryFromBytes + KnownLayout + Immutable,
@@ -77,6 +82,7 @@ impl Bytes {
         }
     }
 
+    /// Split off the beginning of this `Bytes` as a view of `T`.
     pub fn view_prefix<T>(&mut self) -> Result<View<T>, ViewError>
     where
         T: ?Sized + TryFromBytes + KnownLayout + Immutable,
@@ -95,6 +101,8 @@ impl Bytes {
         }
     }
 
+    /// Split off the beginning of this `Bytes` as a slice-like view containing
+    /// `count` elements of `T`.
     pub fn view_prefix_with_elems<T>(&mut self, count: usize) -> Result<View<T>, ViewError>
     where
         T: ?Sized + TryFromBytes + KnownLayout<PointerMetadata = usize> + Immutable,
@@ -113,6 +121,7 @@ impl Bytes {
         }
     }
 
+    /// Split off the end of this `Bytes` as a view of `T`.
     pub fn view_suffix<T>(&mut self) -> Result<View<T>, ViewError>
     where
         T: ?Sized + TryFromBytes + KnownLayout + Immutable,
@@ -131,6 +140,8 @@ impl Bytes {
         }
     }
 
+    /// Split off the end of this `Bytes` as a slice-like view containing
+    /// `count` elements of `T`.
     pub fn view_suffix_with_elems<T>(&mut self, count: usize) -> Result<View<T>, ViewError>
     where
         T: ?Sized + TryFromBytes + KnownLayout<PointerMetadata = usize> + Immutable,
@@ -168,7 +179,7 @@ pub struct View<T: Immutable + ?Sized + 'static> {
 /// unless a strong [View] is referencing it.
 ///
 /// The referenced subrange of the [View] is reconstructed
-/// on [WeakBytes::upgrade].
+/// on [`WeakView::upgrade`].
 pub struct WeakView<T: Immutable + ?Sized + 'static> {
     pub(crate) data: *const T,
     pub(crate) owner: Weak<dyn ByteOwner>,
@@ -189,6 +200,11 @@ impl<T: ?Sized + Immutable> Clone for View<T> {
 
 // Core implementation of View.
 impl<T: ?Sized + Immutable> View<T> {
+    /// Creates a view from raw parts without any checks.
+    ///
+    /// # Safety
+    /// The caller must guarantee that `data` remains valid for the lifetime of
+    /// `owner`.
     pub unsafe fn from_raw_parts(data: &'static T, owner: Arc<dyn ByteOwner>) -> Self {
         Self { data, owner }
     }
@@ -213,6 +229,7 @@ impl<T: ?Sized + Immutable> View<T> {
 }
 
 impl<T: ?Sized + Immutable + IntoBytes> View<T> {
+    /// Converts this view back into [`Bytes`].
     pub fn bytes(self) -> Bytes {
         let bytes = IntoBytes::as_bytes(self.data);
         unsafe { Bytes::from_raw_parts(bytes, self.owner) }
