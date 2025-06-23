@@ -61,3 +61,18 @@ fn test_downgrade_upgrade() {
     let b3 = wb.upgrade();
     assert!(b3.is_none());
 }
+#[test]
+fn test_slice_to_bytes_same_source() {
+    let bytes = Bytes::from(b"abcdef".to_vec());
+    let slice = &bytes[1..4];
+    let result = bytes.slice_to_bytes(slice).expect("slice from same bytes");
+    assert_eq!(result, bytes.slice(1..4));
+}
+
+#[test]
+fn test_slice_to_bytes_unrelated_slice() {
+    let bytes = Bytes::from(b"abcdef".to_vec());
+    let other = b"xyz123".to_vec();
+    let slice = &other[1..4];
+    assert!(bytes.slice_to_bytes(slice).is_none());
+}
