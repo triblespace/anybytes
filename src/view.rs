@@ -342,6 +342,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::ViewError;
     use crate::Bytes;
     use crate::View;
 
@@ -375,5 +376,69 @@ mod tests {
         let view = bytes.view::<str>().unwrap();
         let view_value = view.as_ref();
         assert_eq!(&value, view_value);
+    }
+
+    #[test]
+    fn view_prefix_split() {
+        let mut bytes = Bytes::from_source(vec![1u8, 2, 3, 4]);
+        let view = bytes.view_prefix::<[u8; 2]>().unwrap();
+        assert_eq!(*view, [1u8, 2]);
+        assert_eq!(&bytes[..], [3u8, 4].as_slice());
+    }
+
+    #[test]
+    fn view_prefix_with_elems_split() {
+        let mut bytes = Bytes::from_source(vec![10u8, 11, 12, 13]);
+        let view = bytes.view_prefix_with_elems::<[u8]>(2).unwrap();
+        assert_eq!(view.as_ref(), [10u8, 11].as_slice());
+        assert_eq!(&bytes[..], [12u8, 13].as_slice());
+    }
+
+    #[test]
+    fn view_suffix_split() {
+        let mut bytes = Bytes::from_source(vec![5u8, 6, 7, 8]);
+        let view = bytes.view_suffix::<[u8; 2]>().unwrap();
+        assert_eq!(*view, [7u8, 8]);
+        assert_eq!(&bytes[..], [5u8, 6].as_slice());
+    }
+
+    #[test]
+    fn view_suffix_with_elems_split() {
+        let mut bytes = Bytes::from_source(vec![20u8, 21, 22, 23]);
+        let view = bytes.view_suffix_with_elems::<[u8]>(2).unwrap();
+        assert_eq!(view.as_ref(), [22u8, 23].as_slice());
+        assert_eq!(&bytes[..], [20u8, 21].as_slice());
+    }
+
+    #[test]
+    fn view_prefix_size_error() {
+        let mut bytes = Bytes::from_source(vec![1u8, 2, 3]);
+        let res = bytes.view_prefix::<[u8; 4]>();
+        assert!(matches!(res, Err(ViewError::Size(_))));
+        assert_eq!(&bytes[..], [1u8, 2, 3].as_slice());
+    }
+
+    #[test]
+    fn view_prefix_with_elems_size_error() {
+        let mut bytes = Bytes::from_source(vec![1u8, 2, 3]);
+        let res = bytes.view_prefix_with_elems::<[u8]>(4);
+        assert!(matches!(res, Err(ViewError::Size(_))));
+        assert_eq!(&bytes[..], [1u8, 2, 3].as_slice());
+    }
+
+    #[test]
+    fn view_suffix_size_error() {
+        let mut bytes = Bytes::from_source(vec![1u8, 2, 3]);
+        let res = bytes.view_suffix::<[u8; 4]>();
+        assert!(matches!(res, Err(ViewError::Size(_))));
+        assert_eq!(&bytes[..], [1u8, 2, 3].as_slice());
+    }
+
+    #[test]
+    fn view_suffix_with_elems_size_error() {
+        let mut bytes = Bytes::from_source(vec![1u8, 2, 3]);
+        let res = bytes.view_suffix_with_elems::<[u8]>(4);
+        assert!(matches!(res, Err(ViewError::Size(_))));
+        assert_eq!(&bytes[..], [1u8, 2, 3].as_slice());
     }
 }

@@ -31,6 +31,16 @@ fn main() {
 }
 ```
 
+## Features
+
+By default the crate enables the `mmap` and `zerocopy` features.
+Other optional features provide additional integrations:
+
+- `bytes` &ndash; support for the [`bytes`](https://crates.io/crates/bytes) crate so `bytes::Bytes` can act as a `ByteSource`.
+- `ownedbytes` &ndash; adds compatibility with [`ownedbytes`](https://crates.io/crates/ownedbytes) and implements its `StableDeref` trait.
+- `mmap` &ndash; enables memory-mapped file handling via the `memmap2` crate.
+- `zerocopy` &ndash; exposes the [`view`](src/view.rs) module for typed zero-copy access and allows using `zerocopy` types as sources.
+- `pyo3` &ndash; builds the [`pybytes`](src/pybytes.rs) module to provide Python bindings for `Bytes`.
 
 ## Comparison
 
