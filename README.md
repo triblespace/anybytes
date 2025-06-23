@@ -13,6 +13,25 @@ and is implemented for a variety of sources already,
 including other byte handling crates `Bytes`, mmap-ed files,
 `String`s and `Zerocopy` types.
 
+## Quick Start
+
+```rust
+use anybytes::Bytes;
+
+fn main() {
+    // create `Bytes` from a vector
+    let bytes = Bytes::from(vec![1u8, 2, 3, 4]);
+
+    // take a zero-copy slice
+    let slice = bytes.slice(1..3);
+
+    // convert it to a typed View
+    let view = slice.view::<[u8]>().unwrap();
+    assert_eq!(&*view, &[2, 3]);
+}
+```
+
+
 ## Comparison
 
 | Crate | Active | Extensible | mmap support | Zerocopy Integration | Pyo3 Integration | kani verified |
