@@ -360,6 +360,7 @@ mod verification {
     use kani::BoundedArbitrary;
 
     #[kani::proof]
+    #[kani::unwind(16)]
     pub fn check_take_prefix_ok() {
         let data: Vec<u8> = Vec::bounded_any::<16>();
         kani::assume(data.len() >= 5);
@@ -371,6 +372,7 @@ mod verification {
     }
 
     #[kani::proof]
+    #[kani::unwind(16)]
     pub fn check_take_prefix_too_large() {
         let data: Vec<u8> = Vec::bounded_any::<16>();
         let mut bytes = Bytes::from_source(data.clone());
@@ -381,6 +383,7 @@ mod verification {
     }
 
     #[kani::proof]
+    #[kani::unwind(16)]
     pub fn check_take_suffix_ok() {
         let data: Vec<u8> = Vec::bounded_any::<16>();
         kani::assume(data.len() >= 4);
@@ -392,6 +395,7 @@ mod verification {
     }
 
     #[kani::proof]
+    #[kani::unwind(16)]
     pub fn check_take_suffix_too_large() {
         let data: Vec<u8> = Vec::bounded_any::<16>();
         let mut bytes = Bytes::from_source(data.clone());
@@ -402,6 +406,7 @@ mod verification {
     }
 
     #[kani::proof]
+    #[kani::unwind(16)]
     pub fn check_slice_to_bytes_ok() {
         let data: Vec<u8> = Vec::bounded_any::<16>();
         kani::assume(data.len() >= 8);
@@ -412,6 +417,7 @@ mod verification {
     }
 
     #[kani::proof]
+    #[kani::unwind(16)]
     pub fn check_slice_to_bytes_unrelated() {
         let data: Vec<u8> = Vec::bounded_any::<16>();
         let bytes = Bytes::from_source(data.clone());
