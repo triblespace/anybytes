@@ -353,3 +353,69 @@ mod tests {
         assert_eq!(size_of::<Bytes>(), size_of::<Option<Bytes>>());
     }
 }
+
+#[cfg(kani)]
+mod verification {
+    use super::*;
+    use kani::BoundedArbitrary;
+
+    #[kani::proof]
+    pub fn check_take_prefix_ok() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        kani::assume(data.len() >= 5);
+        let mut bytes = Bytes::from_source(data.clone());
+        let original = bytes.clone();
+        let prefix = bytes.take_prefix(5).expect("prefix exists");
+        assert_eq!(prefix.as_ref(), &original.as_ref()[..5]);
+        assert_eq!(bytes.as_ref(), &original.as_ref()[5..]);
+    }
+
+    #[kani::proof]
+    pub fn check_take_prefix_too_large() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let mut bytes = Bytes::from_source(data.clone());
+        let copy = bytes.clone();
+        let res = bytes.take_prefix(32);
+        assert!(res.is_none());
+        assert_eq!(bytes.as_ref(), copy.as_ref());
+    }
+
+    #[kani::proof]
+    pub fn check_take_suffix_ok() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        kani::assume(data.len() >= 4);
+        let mut bytes = Bytes::from_source(data.clone());
+        let original = bytes.clone();
+        let suffix = bytes.take_suffix(4).expect("suffix exists");
+        assert_eq!(suffix.as_ref(), &original.as_ref()[original.len() - 4..]);
+        assert_eq!(bytes.as_ref(), &original.as_ref()[..original.len() - 4]);
+    }
+
+    #[kani::proof]
+    pub fn check_take_suffix_too_large() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let mut bytes = Bytes::from_source(data.clone());
+        let copy = bytes.clone();
+        let res = bytes.take_suffix(64);
+        assert!(res.is_none());
+        assert_eq!(bytes.as_ref(), copy.as_ref());
+    }
+
+    #[kani::proof]
+    pub fn check_slice_to_bytes_ok() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        kani::assume(data.len() >= 8);
+        let bytes = Bytes::from_source(data.clone());
+        let slice = &bytes.as_ref()[3..8];
+        let sub = bytes.slice_to_bytes(slice).expect("slice from same bytes");
+        assert_eq!(sub.as_ref(), slice);
+    }
+
+    #[kani::proof]
+    pub fn check_slice_to_bytes_unrelated() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let bytes = Bytes::from_source(data.clone());
+        let other: [u8; 4] = kani::any();
+        assert!(bytes.slice_to_bytes(&other).is_none());
+    }
+}
