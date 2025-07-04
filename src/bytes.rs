@@ -372,7 +372,7 @@ mod verification {
     }
 
     #[kani::proof]
-    #[kani::unwind(16)]
+    #[kani::unwind(32)]
     pub fn check_take_prefix_too_large() {
         let data: Vec<u8> = Vec::bounded_any::<16>();
         let mut bytes = Bytes::from_source(data.clone());
@@ -395,7 +395,7 @@ mod verification {
     }
 
     #[kani::proof]
-    #[kani::unwind(16)]
+    #[kani::unwind(32)]
     pub fn check_take_suffix_too_large() {
         let data: Vec<u8> = Vec::bounded_any::<16>();
         let mut bytes = Bytes::from_source(data.clone());
