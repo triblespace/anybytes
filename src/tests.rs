@@ -76,3 +76,41 @@ fn test_slice_to_bytes_unrelated_slice() {
     let slice = &other[1..4];
     assert!(bytes.slice_to_bytes(slice).is_none());
 }
+
+#[test]
+fn test_weakbytes_multiple_upgrades() {
+    let bytes = Bytes::from(b"hello".to_vec());
+    let weak = bytes.downgrade();
+
+    // Upgrade works while strong reference exists
+    let strong1 = weak.upgrade().unwrap();
+    assert_eq!(strong1.as_ref(), bytes.as_ref());
+    drop(strong1);
+
+    // Can upgrade multiple times
+    let strong2 = weak.upgrade().unwrap();
+    assert_eq!(strong2.as_ref(), b"hello".as_ref());
+
+    drop(bytes);
+    drop(strong2);
+
+    // After all strong refs are gone, upgrade returns None
+    assert!(weak.upgrade().is_none());
+}
+
+#[cfg(feature = "zerocopy")]
+#[test]
+fn test_weakview_downgrade_upgrade() {
+    let bytes = Bytes::from(b"abcdef".to_vec());
+    let view = bytes.clone().view::<[u8]>().unwrap();
+
+    let weak = view.downgrade();
+    let strong = weak.upgrade().unwrap();
+    assert_eq!(strong.as_ref(), view.as_ref());
+
+    drop(bytes);
+    drop(view);
+    drop(strong);
+
+    assert!(weak.upgrade().is_none());
+}
