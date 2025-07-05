@@ -31,6 +31,8 @@ fn main() {
 }
 ```
 
+The full example is available in [`examples/quick_start.rs`](examples/quick_start.rs).
+
 ## Features
 
 By default the crate enables the `mmap` and `zerocopy` features.
@@ -41,6 +43,12 @@ Other optional features provide additional integrations:
 - `mmap` &ndash; enables memory-mapped file handling via the `memmap2` crate.
 - `zerocopy` &ndash; exposes the [`view`](src/view.rs) module for typed zero-copy access and allows using `zerocopy` types as sources.
 - `pyo3` &ndash; builds the [`pybytes`](src/pybytes.rs) module to provide Python bindings for `Bytes`.
+
+## Examples
+
+- [`examples/quick_start.rs`](examples/quick_start.rs) – the quick start shown above
+- [`examples/pybytes.rs`](examples/pybytes.rs) – demonstrates the `pyo3` feature using `PyBytes`
+- [`examples/from_python.rs`](examples/from_python.rs) – wrap a Python `bytes` object into `Bytes`
 
 ## Comparison
 

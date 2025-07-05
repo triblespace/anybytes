@@ -6,3 +6,5 @@
 - move weak reference and downcasting examples into module docs
 - expand module introduction describing use cases
 - document rationale for separating `ByteSource` and `ByteOwner`
+- add examples for quick start and PyBytes usage
+- add example showing how to wrap Python `bytes` into `Bytes`
