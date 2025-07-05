@@ -6,3 +6,4 @@
 - move weak reference and downcasting examples into module docs
 - expand module introduction describing use cases
 - document rationale for separating `ByteSource` and `ByteOwner`
+- clarify library overview and development instructions in README
