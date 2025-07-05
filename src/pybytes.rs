@@ -44,3 +44,10 @@ impl PyBytes {
         Ok(())
     }
 }
+
+impl PyBytes {
+    /// Wrap a [`Bytes`] instance for Python exposure.
+    pub fn new(bytes: Bytes) -> Self {
+        Self { bytes }
+    }
+}
