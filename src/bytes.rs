@@ -4,7 +4,52 @@
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
- */
+*/
+
+//! Core byte container types.
+//!
+//! [`Bytes`] provides cheap, zero-copy access to immutable bytes from a
+//! variety of sources. Implement the [`ByteSource`] trait for your type to
+//! integrate it with the container. Each `Bytes` keeps its backing storage
+//! alive through a reference-counted [`ByteOwner`], ensuring the data stays
+//! valid for as long as needed.
+//!
+//! `Bytes` decouples data access from ownership so that callers can obtain a
+//! slice and then release any external locks. After reading the bytes from a
+//! [`ByteSource`], convert it into its [`ByteOwner`] to keep the data alive
+//! without retaining the original guard. This is especially useful for Python
+//! integration where acquiring the raw pointer to a `bytes` object requires
+//! holding the GIL, but once the slice is acquired, only the owner needs to be
+//! kept alive.
+//!
+//! ## Weak references
+//!
+//! A `Bytes` can be downgraded to a [`WeakBytes`] to hold a non-owning reference
+//! without keeping the underlying data alive:
+//!
+//! ```
+//! use anybytes::Bytes;
+//!
+//! let bytes = Bytes::from(vec![1u8, 2, 3]);
+//! let weak = bytes.downgrade();
+//! assert!(weak.upgrade().is_some());
+//! drop(bytes);
+//! assert!(weak.upgrade().is_none());
+//! ```
+//!
+//! ## Downcasting owners
+//!
+//! When the backing type is known, [`Bytes::downcast_to_owner`] retrieves it
+//! again:
+//!
+//! ```
+//! use anybytes::Bytes;
+//! use std::sync::Arc;
+//!
+//! let bytes = Bytes::from_source(vec![1u8, 2, 3, 4]);
+//! let owner: Arc<Vec<u8>> = bytes.downcast_to_owner().unwrap();
+//! assert_eq!(&*owner, &[1, 2, 3, 4]);
+//! ```
 
 use std::any::Any;
 use std::ascii::escape_default;
