@@ -442,3 +442,66 @@ mod tests {
         assert_eq!(&bytes[..], [1u8, 2, 3].as_slice());
     }
 }
+
+#[cfg(kani)]
+mod verification {
+    use super::*;
+    use kani::BoundedArbitrary;
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_view_prefix_ok() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        kani::assume(data.len() >= 4);
+        let mut bytes = Bytes::from_source(data.clone());
+        let original = bytes.clone();
+        let view = bytes.view_prefix::<[u8; 4]>().expect("prefix exists");
+        let expected: [u8; 4] = original.as_ref()[..4].try_into().unwrap();
+        assert_eq!(*view, expected);
+        assert_eq!(bytes.as_ref(), &original.as_ref()[4..]);
+    }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_view_suffix_ok() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        kani::assume(data.len() >= 4);
+        let mut bytes = Bytes::from_source(data.clone());
+        let original = bytes.clone();
+        let view = bytes.view_suffix::<[u8; 4]>().expect("suffix exists");
+        let start = original.len() - 4;
+        let expected: [u8; 4] = original.as_ref()[start..].try_into().unwrap();
+        assert_eq!(*view, expected);
+        assert_eq!(bytes.as_ref(), &original.as_ref()[..start]);
+    }
+
+    #[derive(
+        zerocopy::TryFromBytes,
+        zerocopy::IntoBytes,
+        zerocopy::KnownLayout,
+        zerocopy::Immutable,
+        Clone,
+        Copy,
+    )]
+    #[repr(C)]
+    struct Pair {
+        a: u32,
+        b: u32,
+    }
+
+    #[kani::proof]
+    #[kani::unwind(8)]
+    pub fn check_field_to_view_ok() {
+        let value = Pair {
+            a: kani::any(),
+            b: kani::any(),
+        };
+        let bytes = Bytes::from_source(Box::new(value));
+        let view = bytes.view::<Pair>().unwrap();
+        let field = view.field_to_view(&view.a).expect("field view");
+        assert_eq!(*field, view.a);
+
+        let other: u32 = kani::any();
+        assert!(view.field_to_view(&other).is_none());
+    }
+}
