@@ -13,6 +13,17 @@ and is implemented for a variety of sources already,
 including other byte handling crates `Bytes`, mmap-ed files,
 `String`s and `Zerocopy` types.
 
+## Overview
+
+`Bytes` decouples data access from lifetime management through two traits:
+[`ByteSource`](src/bytes.rs) and [`ByteOwner`](src/bytes.rs).  A `ByteSource`
+can yield a slice of its bytes and then convert itself into a `ByteOwner` that
+keeps the underlying storage alive.  This separation lets callers obtain a
+borrow of the bytes, drop any locks or external guards, and still retain the
+data by storing the owner behind an `Arc`.  No runtime indirection is required
+when constructing a `Bytes`, and custom storage types integrate by
+implementing `ByteSource`.
+
 ## Quick Start
 
 ```rust
@@ -31,6 +42,27 @@ fn main() {
 }
 ```
 
+The full example is available in [`examples/quick_start.rs`](examples/quick_start.rs).
+
+## Advanced Usage
+
+`Bytes` can directly wrap memory-mapped files or other large buffers.  Combined
+with the [`view`](src/view.rs) module this enables simple parsing of structured
+data without copying:
+
+```rust
+use anybytes::Bytes;
+use zerocopy::{FromBytes, Immutable, KnownLayout};
+
+#[derive(FromBytes, Immutable, KnownLayout)]
+#[repr(C)]
+struct Header { magic: u32, count: u32 }
+
+fn read_header(map: memmap2::Mmap) -> anybytes::view::View<Header> {
+    Bytes::from(map).view().unwrap()
+}
+```
+
 ## Features
 
 By default the crate enables the `mmap` and `zerocopy` features.
@@ -41,6 +73,12 @@ Other optional features provide additional integrations:
 - `mmap` &ndash; enables memory-mapped file handling via the `memmap2` crate.
 - `zerocopy` &ndash; exposes the [`view`](src/view.rs) module for typed zero-copy access and allows using `zerocopy` types as sources.
 - `pyo3` &ndash; builds the [`pybytes`](src/pybytes.rs) module to provide Python bindings for `Bytes`.
+
+## Examples
+
+- [`examples/quick_start.rs`](examples/quick_start.rs) – the quick start shown above
+- [`examples/pybytes.rs`](examples/pybytes.rs) – demonstrates the `pyo3` feature using `PyBytes`
+- [`examples/from_python.rs`](examples/from_python.rs) – wrap a Python `bytes` object into `Bytes`
 
 ## Comparison
 
@@ -53,6 +91,19 @@ Other optional features provide additional integrations:
 
 [^1]: Recently added a new "Owned Bytes" variant, which still has all the downsides of a V-Table.
 [^2]: Recently published again.
+
+## Development
+
+Run `./scripts/preflight.sh` from the repository root before committing.  The
+script formats the code, executes all tests, and verifies the Kani proofs.
+
+## Glossary
+
+- [`Bytes`](src/bytes.rs) &ndash; primary container type.
+- [`ByteSource`](src/bytes.rs) &ndash; trait for objects that can provide bytes.
+- [`ByteOwner`](src/bytes.rs) &ndash; keeps backing storage alive.
+- [`view` module](src/view.rs) &ndash; typed zero-copy access to bytes.
+- [`pybytes` module](src/pybytes.rs) &ndash; Python bindings.
 
 ## Acknowledgements
 This library started as a fork of the minibyte library in facebooks [sapling scm](https://github.com/facebook/sapling).
