@@ -7,3 +7,4 @@
 - expand module introduction describing use cases
 - document rationale for separating `ByteSource` and `ByteOwner`
 - summarize built-in `ByteSource`s and show how to extend them
+- clarify library overview and development instructions in README
