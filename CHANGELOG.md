@@ -8,3 +8,5 @@
 - document rationale for separating `ByteSource` and `ByteOwner`
 - add examples for quick start and PyBytes usage
 - add example showing how to wrap Python `bytes` into `Bytes`
+- summarize built-in `ByteSource`s and show how to extend them
+- clarify library overview and development instructions in README

@@ -6,6 +6,36 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+//! Implementations of [`ByteSource`] for common byte containers.
+//!
+//! | Feature      | Implementations                                                   |
+//! | ------------ | ---------------------------------------------------------------- |
+//! | `zerocopy`   | `&'static [T]`, `Box<T>` and `Vec<T>` for `T: IntoBytes + Immutable` |
+//! | *(none)*     | `&'static [u8]`, `Box<[u8]>`, `Vec<u8>`, `String`, `&'static str` |
+//! | `bytes`      | `bytes::Bytes`                                                   |
+//! | `ownedbytes` | `ownedbytes::OwnedBytes`                                         |
+//! | `mmap`       | `memmap2::Mmap` and `ByteOwner` for `memmap2::MmapRaw`           |
+//! | `pyo3`       | `pyo3::Bound<'_, PyBytes>` and `ByteOwner` for `Py<PyBytes>`     |
+//!
+//! To store bytes in your own type, implement [`ByteSource`].
+//! [`ByteOwner`] is provided automatically for all `ByteSource`s but can be
+//! implemented manually if needed:
+//!
+//! ```rust
+//! use anybytes::{ByteSource, Bytes};
+//!
+//! struct MyData(Vec<u8>);
+//!
+//! unsafe impl ByteSource for MyData {
+//!     type Owner = Self;
+//!
+//!     fn as_bytes(&self) -> &[u8] { &self.0 }
+//!     fn get_owner(self) -> Self::Owner { self }
+//! }
+//!
+//! # let _ = Bytes::from_source(MyData(vec![1, 2, 3]));
+//! ```
+
 use zerocopy::Immutable;
 #[cfg(feature = "zerocopy")]
 use zerocopy::IntoBytes;
