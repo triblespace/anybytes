@@ -15,6 +15,7 @@
 - added crate-level examples for weak references and owner downcasting
 - expanded module introduction describing use cases
 - documented rationale for separating `ByteSource` and `ByteOwner`
+- verify `cargo fmt` availability and install `rustfmt` via rustup if missing
 - note that the `pyo3` feature requires Python development libraries
 - documented safety requirements for `erase_lifetime`
 
