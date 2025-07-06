@@ -32,6 +32,11 @@ pub use crate::pybytes::PyBytes;
 #[cfg(feature = "zerocopy")]
 pub use crate::view::View;
 
+/// Erase the lifetime of a reference.
+///
+/// # Safety
+/// The caller must guarantee that the referenced data remains valid for the
+/// `'static` lifetime.
 unsafe fn erase_lifetime<'a, T: ?Sized>(slice: &'a T) -> &'static T {
     &*(slice as *const T)
 }
