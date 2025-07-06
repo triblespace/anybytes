@@ -15,6 +15,7 @@
 - expanded module introduction describing use cases
 - documented rationale for separating `ByteSource` and `ByteOwner`
 - note that the `pyo3` feature requires Python development libraries
+- documented safety requirements for `erase_lifetime`
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
