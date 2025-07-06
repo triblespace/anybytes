@@ -10,6 +10,7 @@
 - add examples for quick start and PyBytes usage
 - add example showing how to wrap Python `bytes` into `Bytes`
 - summarize built-in `ByteSource`s and show how to extend them
+- added tests verifying `WeakView` upgrade and drop semantics
 - clarify library overview and development instructions in README
 - added crate-level examples for weak references and owner downcasting
 - expanded module introduction describing use cases
