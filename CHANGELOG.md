@@ -13,6 +13,7 @@
 - clarify library overview and development instructions in README
 - added crate-level examples for weak references and owner downcasting
 - expanded module introduction describing use cases
+- update bytes, ownedbytes, memmap2, zerocopy and pyo3 dependencies
 - documented rationale for separating `ByteSource` and `ByteOwner`
 
 ## 0.19.3 - 2025-05-30
