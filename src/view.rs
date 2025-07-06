@@ -441,6 +441,23 @@ mod tests {
         assert!(matches!(res, Err(ViewError::Size(_))));
         assert_eq!(&bytes[..], [1u8, 2, 3].as_slice());
     }
+
+    #[test]
+    fn downgrade_upgrade() {
+        let bytes = Bytes::from_source(b"abcd".to_vec());
+        let view = bytes.clone().view::<[u8]>().unwrap();
+
+        // `downgrade` -> `upgrade` returns the same view.
+        let weak = view.downgrade();
+        let upgraded = weak.upgrade().expect("upgrade succeeds");
+        assert_eq!(upgraded.as_ref(), view.as_ref());
+
+        // `upgrade` returns `None` if all strong refs are dropped.
+        drop(bytes);
+        drop(view);
+        drop(upgraded);
+        assert!(weak.upgrade().is_none());
+    }
 }
 
 #[cfg(kani)]
