@@ -98,8 +98,14 @@ needs these libraries installed; otherwise disable the feature during testing.
 
 ## Development
 
-Run `./scripts/preflight.sh` from the repository root before committing.  The
-script formats the code, executes all tests, and verifies the Kani proofs.
+Run `./scripts/preflight.sh` from the repository root before committing. The
+script formats the code and executes all tests, automatically installing required
+tools if needed.
+
+Kani proofs are executed separately with `./scripts/verify.sh`, which should be
+run on a dedicated system. The script will install the Kani verifier
+automatically. Verification can take a long time and isn't needed for quick
+development iterations.
 
 ## Glossary
 
