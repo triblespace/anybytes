@@ -127,6 +127,7 @@ pub struct Bytes {
 ///
 /// The referenced subrange of the [Bytes] is reconstructed
 /// on [WeakBytes::upgrade].
+#[derive(Clone, Debug)]
 pub struct WeakBytes {
     data: *const [u8],
     owner: Weak<dyn ByteOwner>,
