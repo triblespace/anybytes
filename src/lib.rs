@@ -7,6 +7,7 @@
  */
 
 #![doc = include_str!("../README.md")]
+#![warn(missing_docs)]
 
 /// Core byte container types and traits.
 pub mod bytes;

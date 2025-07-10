@@ -19,6 +19,7 @@
 - verify `cargo fmt` availability and install `rustfmt` via rustup if missing
 - note that the `pyo3` feature requires Python development libraries
 - documented safety requirements for `erase_lifetime`
+- warn about missing documentation by enabling the `missing_docs` lint
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
