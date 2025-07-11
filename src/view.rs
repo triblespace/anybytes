@@ -185,6 +185,23 @@ pub struct WeakView<T: Immutable + ?Sized + 'static> {
     pub(crate) owner: Weak<dyn ByteOwner>,
 }
 
+impl<T: ?Sized + Immutable> Clone for WeakView<T> {
+    fn clone(&self) -> Self {
+        Self {
+            data: self.data,
+            owner: self.owner.clone(),
+        }
+    }
+}
+
+impl<T: ?Sized + Immutable> Debug for WeakView<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WeakView")
+            .field("data", &self.data)
+            .finish_non_exhaustive()
+    }
+}
+
 // ByteOwner is Send + Sync and View is immutable.
 unsafe impl<T: ?Sized + Immutable> Send for View<T> {}
 unsafe impl<T: ?Sized + Immutable> Sync for View<T> {}

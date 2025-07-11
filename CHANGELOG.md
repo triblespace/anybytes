@@ -24,6 +24,7 @@
 - note that the `pyo3` feature requires Python development libraries
 - documented safety requirements for `erase_lifetime`
 - warn about missing documentation by enabling the `missing_docs` lint
+- derive `Clone` and `Debug` for `WeakBytes` and `WeakView`
 - replaced `quickcheck` property tests with `proptest`
 
 ## 0.19.3 - 2025-05-30
