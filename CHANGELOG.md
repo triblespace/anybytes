@@ -23,6 +23,7 @@
 - verify `cargo fmt` availability and install `rustfmt` via rustup if missing
 - note that the `pyo3` feature requires Python development libraries
 - documented safety requirements for `erase_lifetime`
+- derive `Clone` and `Debug` for `WeakBytes` and `WeakView`
 - replaced `quickcheck` property tests with `proptest`
 
 ## 0.19.3 - 2025-05-30

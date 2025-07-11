@@ -102,6 +102,22 @@ fn test_weakbytes_multiple_upgrades() {
     assert!(weak.upgrade().is_none());
 }
 
+#[test]
+fn test_weakbytes_clone_upgrade() {
+    let bytes = Bytes::from(b"hello".to_vec());
+    let weak = bytes.downgrade();
+    let weak_clone = weak.clone();
+
+    let strong = weak_clone.upgrade().unwrap();
+    assert_eq!(strong.as_ref(), bytes.as_ref());
+
+    drop(bytes);
+    drop(strong);
+
+    assert!(weak.upgrade().is_none());
+    assert!(weak_clone.upgrade().is_none());
+}
+
 #[cfg(feature = "zerocopy")]
 #[test]
 fn test_weakview_downgrade_upgrade() {
@@ -117,4 +133,24 @@ fn test_weakview_downgrade_upgrade() {
     drop(strong);
 
     assert!(weak.upgrade().is_none());
+}
+
+#[cfg(feature = "zerocopy")]
+#[test]
+fn test_weakview_clone_upgrade() {
+    let bytes = Bytes::from(b"abcdef".to_vec());
+    let view = bytes.clone().view::<[u8]>().unwrap();
+
+    let weak = view.downgrade();
+    let weak_clone = weak.clone();
+
+    let strong = weak_clone.upgrade().unwrap();
+    assert_eq!(strong.as_ref(), view.as_ref());
+
+    drop(bytes);
+    drop(view);
+    drop(strong);
+
+    assert!(weak.upgrade().is_none());
+    assert!(weak_clone.upgrade().is_none());
 }
