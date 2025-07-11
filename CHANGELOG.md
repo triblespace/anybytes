@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- split Kani verification into `verify.sh` and streamline `preflight.sh`
+- clarify that `verify.sh` runs on a dedicated system and document avoiding async code
+- install `rustfmt` and the Kani verifier automatically via `cargo install`
+- restore Kani proof best practices in `AGENTS.md` and note that proofs run via `verify.sh`
 - limit Kani loop unwind by default and set per-harness bounds
 - increase unwind for prefix/suffix overflow proofs
 - move weak reference and downcasting examples into module docs
@@ -20,6 +24,7 @@
 - note that the `pyo3` feature requires Python development libraries
 - documented safety requirements for `erase_lifetime`
 - derive `Clone` and `Debug` for `WeakBytes` and `WeakView`
+- replaced `quickcheck` property tests with `proptest`
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`

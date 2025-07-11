@@ -6,21 +6,25 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-use quickcheck::quickcheck;
+use proptest::prelude::*;
 
 use crate::Bytes;
 
-quickcheck! {
-    fn test_shallow_clone(v: Vec<u8>) -> bool {
+proptest! {
+    #[test]
+    fn test_shallow_clone(v in proptest::collection::vec(any::<u8>(), 0..256)) {
         let a: Bytes = v.into();
         let b: Bytes = a.clone();
-        a == b && a.as_ptr() == b.as_ptr()
+        prop_assert_eq!(a.as_ref(), b.as_ref());
+        prop_assert_eq!(a.as_ptr(), b.as_ptr());
     }
 
-    fn test_shallow_slice(v: Vec<u8>) -> bool {
+    #[test]
+    fn test_shallow_slice(v in proptest::collection::vec(any::<u8>(), 0..256)) {
         let a: Bytes = v.into();
         let b: Bytes = a.slice(..a.len() / 2);
-        &b[..] == &a[..b.len()] && (b.is_empty() || a.as_ptr() == b.as_ptr())
+        prop_assert_eq!(&b[..], &a[..b.len()]);
+        prop_assert!(b.is_empty() || a.as_ptr() == b.as_ptr());
     }
 }
 
