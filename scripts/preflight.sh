@@ -5,9 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # Ensure required tools are available
-# Install rustfmt unconditionally. The command is idempotent and will
-# skip installation if the tool is already available.
-cargo install rustfmt || true
+rustup component add rustfmt
 
 # Run formatting check and tests
 cargo fmt -- --check
