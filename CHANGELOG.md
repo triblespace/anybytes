@@ -10,6 +10,9 @@
 - move weak reference and downcasting examples into module docs
 - expand module introduction describing use cases
 - document rationale for separating `ByteSource` and `ByteOwner`
+- added `INVENTORY.md` for tracking future work and noted it in `AGENTS.md`
+- removed the Completed Work section from `INVENTORY.md` and documented its use
+  in a dedicated AGENTS section
 - add tests for weak reference upgrade/downgrade and Kani proofs for view helpers
 - add examples for quick start and PyBytes usage
 - add example showing how to wrap Python `bytes` into `Bytes`
