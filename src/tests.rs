@@ -154,3 +154,57 @@ fn test_weakview_clone_upgrade() {
     assert!(weak.upgrade().is_none());
     assert!(weak_clone.upgrade().is_none());
 }
+
+#[cfg(feature = "mmap")]
+#[test]
+fn test_mmap_mut_source() {
+    let mut mmap = memmap2::MmapMut::map_anon(4).expect("mmap");
+    mmap.copy_from_slice(b"test");
+    let bytes = Bytes::from_source(mmap);
+    assert_eq!(bytes.as_ref(), b"test");
+}
+
+#[test]
+fn test_cow_u8_owned_source() {
+    use std::borrow::Cow;
+
+    let owned: Cow<'static, [u8]> = Cow::Owned(vec![1, 2, 3, 4]);
+    let bytes_owned = Bytes::from_source(owned.clone());
+    assert_eq!(bytes_owned.as_ref(), owned.as_ref());
+}
+
+#[test]
+fn test_cow_u8_borrowed_source() {
+    use std::borrow::Cow;
+
+    let borrowed: Cow<'static, [u8]> = Cow::Borrowed(b"abcd");
+    let bytes_borrowed = Bytes::from_source(borrowed.clone());
+    assert_eq!(bytes_borrowed.as_ref(), borrowed.as_ref());
+}
+
+#[cfg(feature = "zerocopy")]
+#[test]
+fn test_cow_zerocopy_owned_source() {
+    use std::borrow::Cow;
+
+    let owned: Cow<'static, [u32]> = Cow::Owned(vec![1, 2, 3, 4]);
+    let bytes_owned = Bytes::from_source(owned.clone());
+    assert_eq!(
+        bytes_owned.as_ref(),
+        zerocopy::IntoBytes::as_bytes(owned.as_ref())
+    );
+}
+
+#[cfg(feature = "zerocopy")]
+#[test]
+fn test_cow_zerocopy_borrowed_source() {
+    use std::borrow::Cow;
+
+    static BORROWED: [u32; 2] = [5, 6];
+    let borrowed: Cow<'static, [u32]> = Cow::Borrowed(&BORROWED);
+    let bytes_borrowed = Bytes::from_source(borrowed.clone());
+    assert_eq!(
+        bytes_borrowed.as_ref(),
+        zerocopy::IntoBytes::as_bytes(borrowed.as_ref())
+    );
+}

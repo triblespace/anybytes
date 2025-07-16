@@ -29,6 +29,8 @@
 - warn about missing documentation by enabling the `missing_docs` lint
 - derive `Clone` and `Debug` for `WeakBytes` and `WeakView`
 - replaced `quickcheck` property tests with `proptest`
+- added `ByteSource` support for `memmap2::MmapMut` and `Cow<'static, [T]>` with `zerocopy`
+- split `Cow` ByteSource tests into dedicated cases
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
