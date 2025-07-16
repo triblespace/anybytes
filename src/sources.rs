@@ -36,6 +36,7 @@
 //! # let _ = Bytes::from_source(MyData(vec![1, 2, 3]));
 //! ```
 
+use std::borrow::Cow;
 use zerocopy::Immutable;
 #[cfg(feature = "zerocopy")]
 use zerocopy::IntoBytes;
@@ -144,6 +145,36 @@ unsafe impl ByteSource for String {
     }
 }
 
+#[cfg(feature = "zerocopy")]
+unsafe impl<T> ByteSource for Cow<'static, [T]>
+where
+    T: IntoBytes + Immutable + Sync + Send + Clone + 'static,
+{
+    type Owner = Self;
+
+    fn as_bytes(&self) -> &[u8] {
+        let slice: &[T] = self.as_ref();
+        IntoBytes::as_bytes(slice)
+    }
+
+    fn get_owner(self) -> Self::Owner {
+        self
+    }
+}
+
+#[cfg(not(feature = "zerocopy"))]
+unsafe impl ByteSource for Cow<'static, [u8]> {
+    type Owner = Self;
+
+    fn as_bytes(&self) -> &[u8] {
+        self.as_ref()
+    }
+
+    fn get_owner(self) -> Self::Owner {
+        self
+    }
+}
+
 unsafe impl ByteSource for &'static str {
     type Owner = Self;
 
@@ -184,6 +215,19 @@ unsafe impl ByteSource for ownedbytes::OwnedBytes {
 
 #[cfg(feature = "mmap")]
 unsafe impl ByteSource for memmap2::Mmap {
+    type Owner = Self;
+
+    fn as_bytes(&self) -> &[u8] {
+        self.as_ref()
+    }
+
+    fn get_owner(self) -> Self::Owner {
+        self
+    }
+}
+
+#[cfg(feature = "mmap")]
+unsafe impl ByteSource for memmap2::MmapMut {
     type Owner = Self;
 
     fn as_bytes(&self) -> &[u8] {
