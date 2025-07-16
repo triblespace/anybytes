@@ -13,6 +13,8 @@ and is implemented for a variety of sources already,
 including other byte handling crates `Bytes`, mmap-ed files,
 `String`s and `Zerocopy` types.
 
+See `INVENTORY.md` for notes on possible cleanup and future functionality.
+
 ## Overview
 
 `Bytes` decouples data access from lifetime management through two traits:

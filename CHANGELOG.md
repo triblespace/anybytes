@@ -11,11 +11,14 @@
 - expand module introduction describing use cases
 - document rationale for separating `ByteSource` and `ByteOwner`
 - added optional `winnow` feature for parser integration
+- added `INVENTORY.md` for tracking future work and noted it in `AGENTS.md`
 - documented safety rationale for `winnow` integration
 - implemented `Stream` directly for `Bytes` with a safe `iter_offsets` iterator
 - added `pop_back` and `pop_front` helpers and rewrote parser examples
+- removed the Completed Work section from `INVENTORY.md` and documented its use
 - rewrote `winnow::view` to use safe helpers and added `view_elems(count)` parser
 - `winnow::view_elems` now returns a Parser closure for idiomatic usage
+  in a dedicated AGENTS section
 - add tests for weak reference upgrade/downgrade and Kani proofs for view helpers
 - add examples for quick start and PyBytes usage
 - add example showing how to wrap Python `bytes` into `Bytes`
@@ -32,6 +35,8 @@
 - warn about missing documentation by enabling the `missing_docs` lint
 - derive `Clone` and `Debug` for `WeakBytes` and `WeakView`
 - replaced `quickcheck` property tests with `proptest`
+- added `ByteSource` support for `memmap2::MmapMut` and `Cow<'static, [T]>` with `zerocopy`
+- split `Cow` ByteSource tests into dedicated cases
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
