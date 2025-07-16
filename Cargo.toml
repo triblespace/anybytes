@@ -34,3 +34,11 @@ default-unwind = "1"
 
 [workspace.metadata.kani.flags]
 default-unwind = "1"
+
+[[example]]
+name = "from_python"
+required-features = ["pyo3"]
+
+[[example]]
+name = "pybytes"
+required-features = ["pyo3"]
