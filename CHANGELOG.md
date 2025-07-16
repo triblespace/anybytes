@@ -10,6 +10,12 @@
 - move weak reference and downcasting examples into module docs
 - expand module introduction describing use cases
 - document rationale for separating `ByteSource` and `ByteOwner`
+- added optional `winnow` feature for parser integration
+- documented safety rationale for `winnow` integration
+- implemented `Stream` directly for `Bytes` with a safe `iter_offsets` iterator
+- added `pop_back` and `pop_front` helpers and rewrote parser examples
+- rewrote `winnow::view` to use safe helpers and added `view_elems(count)` parser
+- `winnow::view_elems` now returns a Parser closure for idiomatic usage
 - add tests for weak reference upgrade/downgrade and Kani proofs for view helpers
 - add examples for quick start and PyBytes usage
 - add example showing how to wrap Python `bytes` into `Bytes`

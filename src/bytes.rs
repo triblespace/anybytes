@@ -292,6 +292,20 @@ impl Bytes {
         })
     }
 
+    /// Removes and returns the first byte of `self`.
+    pub fn pop_front(&mut self) -> Option<u8> {
+        let (&b, rest) = self.data.split_first()?;
+        self.data = rest;
+        Some(b)
+    }
+
+    /// Removes and returns the last byte of `self`.
+    pub fn pop_back(&mut self) -> Option<u8> {
+        let (last, rest) = self.data.split_last()?;
+        self.data = rest;
+        Some(*last)
+    }
+
     /// Create a weak pointer.
     pub fn downgrade(&self) -> WeakBytes {
         WeakBytes {
