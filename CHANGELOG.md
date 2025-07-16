@@ -37,6 +37,7 @@
 - replaced `quickcheck` property tests with `proptest`
 - added `ByteSource` support for `memmap2::MmapMut` and `Cow<'static, [T]>` with `zerocopy`
 - split `Cow` ByteSource tests into dedicated cases
+- skip Python examples when the `pyo3` feature is disabled to fix `cargo test`
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
