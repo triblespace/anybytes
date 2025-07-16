@@ -21,6 +21,10 @@ pub mod view;
 /// Python bindings for [`Bytes`].
 pub mod pybytes;
 
+#[cfg(feature = "winnow")]
+/// Integration with the `winnow` parser library.
+pub mod winnow;
+
 #[cfg(test)]
 mod tests;
 

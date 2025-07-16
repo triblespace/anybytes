@@ -75,6 +75,7 @@ Other optional features provide additional integrations:
 - `mmap` &ndash; enables memory-mapped file handling via the `memmap2` crate.
 - `zerocopy` &ndash; exposes the [`view`](src/view.rs) module for typed zero-copy access and allows using `zerocopy` types as sources.
 - `pyo3` &ndash; builds the [`pybytes`](src/pybytes.rs) module to provide Python bindings for `Bytes`.
+- `winnow` &ndash; implements the [`Stream`](https://docs.rs/winnow/) traits for `Bytes` and offers parsers (`view`, `view_elems(count)`) that return typed `View`s.
 
 Enabling the `pyo3` feature requires the Python development headers and libraries
 (for example `libpython3.x`). Running `cargo test --all-features` therefore

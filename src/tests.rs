@@ -155,6 +155,56 @@ fn test_weakview_clone_upgrade() {
     assert!(weak_clone.upgrade().is_none());
 }
 
+#[cfg(feature = "winnow")]
+#[test]
+fn test_winnow_stream_take() {
+    use winnow::error::ContextError;
+    use winnow::stream::AsBytes;
+    use winnow::token::take;
+    use winnow::Parser;
+
+    let mut input = Bytes::from(vec![1u8, 2, 3, 4]);
+    let mut parser = take::<_, _, ContextError>(2usize);
+    let prefix: Bytes = parser.parse_next(&mut input).expect("take");
+    assert_eq!(prefix.as_ref(), [1u8, 2].as_ref());
+    assert_eq!(input.as_bytes(), [3u8, 4].as_ref());
+}
+
+#[cfg(all(feature = "winnow", feature = "zerocopy"))]
+#[test]
+fn test_winnow_view_parser() {
+    use winnow::error::ContextError;
+    use winnow::stream::AsBytes;
+    use winnow::Parser;
+    #[derive(zerocopy::TryFromBytes, zerocopy::KnownLayout, zerocopy::Immutable)]
+    #[repr(C)]
+    struct Pair {
+        a: u16,
+        b: u16,
+    }
+
+    let mut input = Bytes::from(vec![1u8, 0, 2, 0]);
+    let mut parser = crate::winnow::view::<Pair, ContextError>;
+    let view = parser.parse_next(&mut input).expect("view");
+    assert_eq!(view.a, 1);
+    assert_eq!(view.b, 2);
+    assert!(input.as_bytes().is_empty());
+}
+
+#[cfg(all(feature = "winnow", feature = "zerocopy"))]
+#[test]
+fn test_winnow_view_elems_parser() {
+    use winnow::error::ContextError;
+    use winnow::stream::AsBytes;
+    use winnow::Parser;
+
+    let mut input = Bytes::from(vec![1u8, 2, 3, 4]);
+    let mut parser = crate::winnow::view_elems::<[u8], ContextError>(3);
+    let view = parser.parse_next(&mut input).expect("view_elems");
+    assert_eq!(view.as_ref(), [1u8, 2, 3].as_ref());
+    assert_eq!(input.as_bytes(), [4u8].as_ref());
+}
+
 #[cfg(feature = "mmap")]
 #[test]
 fn test_mmap_mut_source() {
