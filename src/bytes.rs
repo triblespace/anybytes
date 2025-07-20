@@ -47,7 +47,9 @@
 //! use std::sync::Arc;
 //!
 //! let bytes = Bytes::from_source(vec![1u8, 2, 3, 4]);
-//! let owner: Arc<Vec<u8>> = bytes.downcast_to_owner().unwrap();
+//! let owner: Arc<Vec<u8>> = bytes
+//!     .downcast_to_owner()
+//!     .expect("Downcast of known type.");
 //! assert_eq!(&*owner, &[1, 2, 3, 4]);
 //! ```
 
@@ -223,15 +225,19 @@ impl Bytes {
     /// use std::sync::Arc;
     /// let owner: Vec<u8> = vec![0,1,2,3];
     /// let bytes = Bytes::from_source(owner);
-    /// let owner: Arc<Vec<u8>> = bytes.downcast_to_owner().expect("Downcast of known type.");
+    /// let owner: Arc<Vec<u8>> = bytes
+    ///     .downcast_to_owner()
+    ///     .expect("Downcast of known type.");
     /// ```
-    pub fn downcast_to_owner<T>(self) -> Option<Arc<T>>
+    pub fn downcast_to_owner<T>(self) -> Result<Arc<T>, Bytes>
     where
         T: Send + Sync + 'static,
     {
-        let owner = self.owner;
-        let owner = ByteOwner::as_any(owner);
-        owner.downcast::<T>().ok()
+        let owner_any = ByteOwner::as_any(self.owner.clone());
+        match owner_any.downcast::<T>() {
+            Ok(owner) => Ok(owner),
+            Err(_) => Err(self),
+        }
     }
 
     /// Returns a slice of self for the provided range.

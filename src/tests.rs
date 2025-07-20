@@ -32,10 +32,14 @@ proptest! {
 fn test_downcast() {
     let v = b"abcd".to_vec();
     let b = Bytes::from(v);
-    assert!(b.downcast_to_owner::<Vec<u8>>().is_some());
+    assert!(b.downcast_to_owner::<Vec<u8>>().is_ok());
+
     let v = b"abcd".to_vec();
     let b = Bytes::from(v);
-    assert!(b.downcast_to_owner::<String>().is_none());
+    match b.downcast_to_owner::<String>() {
+        Ok(_) => panic!("unexpected success"),
+        Err(orig) => assert_eq!(orig.as_ref(), b"abcd"),
+    }
 }
 
 #[test]
