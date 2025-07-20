@@ -227,13 +227,15 @@ impl<T: ?Sized + Immutable> View<T> {
     }
 
     /// Returns the owner of the View in an `Arc`.
-    pub fn downcast_to_owner<O>(self) -> Option<Arc<O>>
+    pub fn downcast_to_owner<O>(self) -> Result<Arc<O>, View<T>>
     where
         O: Send + Sync + 'static,
     {
-        let owner = self.owner;
-        let owner = ByteOwner::as_any(owner);
-        owner.downcast::<O>().ok()
+        let owner_any = ByteOwner::as_any(self.owner.clone());
+        match owner_any.downcast::<O>() {
+            Ok(owner) => Ok(owner),
+            Err(_) => Err(self),
+        }
     }
 
     /// Create a weak pointer.
