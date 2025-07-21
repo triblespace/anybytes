@@ -12,8 +12,9 @@ use std::cmp::Ordering;
 use crate::bytes::is_subslice;
 use crate::erase_lifetime;
 use crate::{bytes::ByteOwner, Bytes};
-use std::sync::Weak;
-use std::{fmt::Debug, hash::Hash, ops::Deref, sync::Arc};
+use std::any::Any;
+use std::sync::{Arc, Weak};
+use std::{fmt::Debug, hash::Hash, ops::Deref};
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryCastError, TryFromBytes};
 
 /// Errors that can occur when constructing a [`View`].
@@ -231,7 +232,7 @@ impl<T: ?Sized + Immutable> View<T> {
     where
         O: Send + Sync + 'static,
     {
-        let owner_any = ByteOwner::as_any(self.owner.clone());
+        let owner_any: Arc<dyn Any + Send + Sync> = self.owner.clone();
         match owner_any.downcast::<O>() {
             Ok(owner) => Ok(owner),
             Err(_) => Err(self),

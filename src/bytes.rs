@@ -61,8 +61,7 @@ use std::fmt;
 use std::hash;
 use std::ops::Deref;
 use std::slice::SliceIndex;
-use std::sync::Arc;
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 use crate::erase_lifetime;
 
@@ -97,16 +96,9 @@ pub unsafe trait ByteSource {
 }
 
 /// A trait for types that keep the backing bytes of [`Bytes`] alive.
-pub trait ByteOwner: Sync + Send + 'static {
-    /// Convert the owner into a type-erased [`Arc`] for downcasting.
-    fn as_any(self: Arc<Self>) -> Arc<dyn Any + Sync + Send>;
-}
+pub trait ByteOwner: Any + Sync + Send {}
 
-impl<T: ByteSource + Sync + Send + 'static> ByteOwner for T {
-    fn as_any(self: Arc<Self>) -> Arc<dyn Any + Sync + Send> {
-        self
-    }
-}
+impl<T: ByteSource + Sync + Send + 'static> ByteOwner for T {}
 
 /// Immutable bytes with zero-copy slicing and cloning.
 ///
@@ -253,7 +245,7 @@ impl Bytes {
     where
         T: Send + Sync + 'static,
     {
-        let owner_any = ByteOwner::as_any(self.owner.clone());
+        let owner_any: Arc<dyn Any + Send + Sync> = self.owner.clone();
         match owner_any.downcast::<T>() {
             Ok(owner) => Ok(owner),
             Err(_) => Err(self),

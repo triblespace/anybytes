@@ -18,6 +18,7 @@
 - removed the Completed Work section from `INVENTORY.md` and documented its use
 - rewrote `winnow::view` to use safe helpers and added `view_elems(count)` parser
 - `winnow::view_elems` now returns a Parser closure for idiomatic usage
+- replaced `ByteOwner::as_any` with trait upcasting to `Any`
 - `Bytes::downcast_to_owner` and `View::downcast_to_owner` now return `Result`
   and return the original value on failure
   in a dedicated AGENTS section
