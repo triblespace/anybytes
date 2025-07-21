@@ -218,6 +218,17 @@ fn test_mmap_mut_source() {
     assert_eq!(bytes.as_ref(), b"test");
 }
 
+#[cfg(feature = "mmap")]
+#[test]
+fn test_map_file() {
+    use std::io::Write;
+    let mut file = tempfile::NamedTempFile::new().expect("temp file");
+    file.write_all(b"testfile").expect("write");
+    file.flush().unwrap();
+    let bytes = unsafe { Bytes::map_file(&file) }.expect("map file");
+    assert_eq!(bytes.as_ref(), b"testfile");
+}
+
 #[test]
 fn test_cow_u8_owned_source() {
     use std::borrow::Cow;

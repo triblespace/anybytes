@@ -40,6 +40,8 @@
 - added `ByteSource` support for `memmap2::MmapMut` and `Cow<'static, [T]>` with `zerocopy`
 - split `Cow` ByteSource tests into dedicated cases
 - skip Python examples when the `pyo3` feature is disabled to fix `cargo test`
+- added `Bytes::map_file` helper for convenient file mapping
+  (accepts any `memmap2::MmapAsRawDesc`, e.g. `&File` or `&NamedTempFile`)
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
