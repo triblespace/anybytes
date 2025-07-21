@@ -60,8 +60,11 @@ use zerocopy::{FromBytes, Immutable, KnownLayout};
 #[repr(C)]
 struct Header { magic: u32, count: u32 }
 
-fn read_header(map: memmap2::Mmap) -> anybytes::view::View<Header> {
-    Bytes::from(map).view().unwrap()
+// `file` can be any type that implements `memmap2::MmapAsRawDesc` such as
+// `&std::fs::File` or `&tempfile::NamedTempFile`.
+fn read_header(file: &std::fs::File) -> std::io::Result<anybytes::view::View<Header>> {
+    let bytes = unsafe { Bytes::map_file(file)? };
+    Ok(bytes.view().unwrap())
 }
 ```
 
