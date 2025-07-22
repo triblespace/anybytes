@@ -51,6 +51,8 @@
 - added `Bytes::map_file` helper for convenient file mapping
   (accepts any `memmap2::MmapAsRawDesc`, e.g. `&File` or `&NamedTempFile`)
 - added README example demonstrating `Bytes::try_unwrap_owner`
+- expanded `ByteOwner` trait docs to clarify lifetime requirements and trait
+  upcasting for downcasting
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
