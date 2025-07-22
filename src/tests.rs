@@ -32,10 +32,14 @@ proptest! {
 fn test_downcast() {
     let v = b"abcd".to_vec();
     let b = Bytes::from(v);
-    assert!(b.downcast_to_owner::<Vec<u8>>().is_some());
+    assert!(b.downcast_to_owner::<Vec<u8>>().is_ok());
+
     let v = b"abcd".to_vec();
     let b = Bytes::from(v);
-    assert!(b.downcast_to_owner::<String>().is_none());
+    match b.downcast_to_owner::<String>() {
+        Ok(_) => panic!("unexpected success"),
+        Err(orig) => assert_eq!(orig.as_ref(), b"abcd"),
+    }
 }
 
 #[test]
@@ -230,6 +234,17 @@ fn test_mmap_mut_source() {
     mmap.copy_from_slice(b"test");
     let bytes = Bytes::from_source(mmap);
     assert_eq!(bytes.as_ref(), b"test");
+}
+
+#[cfg(feature = "mmap")]
+#[test]
+fn test_map_file() {
+    use std::io::Write;
+    let mut file = tempfile::NamedTempFile::new().expect("temp file");
+    file.write_all(b"testfile").expect("write");
+    file.flush().unwrap();
+    let bytes = unsafe { Bytes::map_file(&file) }.expect("map file");
+    assert_eq!(bytes.as_ref(), b"testfile");
 }
 
 #[test]

@@ -47,7 +47,9 @@
 //! use std::sync::Arc;
 //!
 //! let bytes = Bytes::from_source(vec![1u8, 2, 3, 4]);
-//! let owner: Arc<Vec<u8>> = bytes.downcast_to_owner().unwrap();
+//! let owner: Arc<Vec<u8>> = bytes
+//!     .downcast_to_owner()
+//!     .expect("Downcast of known type.");
 //! assert_eq!(&*owner, &[1, 2, 3, 4]);
 //! ```
 
@@ -59,8 +61,7 @@ use std::fmt;
 use std::hash;
 use std::ops::Deref;
 use std::slice::SliceIndex;
-use std::sync::Arc;
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 use crate::erase_lifetime;
 
@@ -100,7 +101,7 @@ pub unsafe trait ByteSource {
 /// [`Arc::downcast`].  No conversion method is required; callers can simply
 /// upcast the owner `Arc` to `Arc<dyn Any + Send + Sync>` and attempt a
 /// downcast.
-pub trait ByteOwner: Any + Sync + Send + 'static {}
+pub trait ByteOwner: Any + Sync + Send {}
 
 impl<T: ByteSource + Sync + Send + 'static> ByteOwner for T {}
 
@@ -207,6 +208,26 @@ impl Bytes {
         Self { data, owner: arc }
     }
 
+    /// Memory-map the given file descriptor and return the bytes.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the mapped file is not modified for the
+    /// lifetime of the returned [`Bytes`]. Changing the file contents while it
+    /// is mapped can lead to undefined behavior. The file handle does not need
+    /// to remain open after mapping.
+    ///
+    /// The argument may be any type that implements [`memmap2::MmapAsRawDesc`],
+    /// such as [`&std::fs::File`] or [`&tempfile::NamedTempFile`].
+    #[cfg(feature = "mmap")]
+    pub unsafe fn map_file<F>(file: F) -> std::io::Result<Self>
+    where
+        F: memmap2::MmapAsRawDesc,
+    {
+        let map = memmap2::MmapOptions::new().map(file)?;
+        Ok(Self::from_source(map))
+    }
+
     #[inline]
     pub(crate) fn as_slice<'a>(&'a self) -> &'a [u8] {
         self.data
@@ -221,14 +242,19 @@ impl Bytes {
     /// use std::sync::Arc;
     /// let owner: Vec<u8> = vec![0,1,2,3];
     /// let bytes = Bytes::from_source(owner);
-    /// let owner: Arc<Vec<u8>> = bytes.downcast_to_owner().expect("Downcast of known type.");
+    /// let owner: Arc<Vec<u8>> = bytes
+    ///     .downcast_to_owner()
+    ///     .expect("Downcast of known type.");
     /// ```
-    pub fn downcast_to_owner<T>(self) -> Option<Arc<T>>
+    pub fn downcast_to_owner<T>(self) -> Result<Arc<T>, Bytes>
     where
         T: Send + Sync + 'static,
     {
-        let owner = self.owner;
-        Arc::downcast::<T>(owner).ok()
+        let owner_any: Arc<dyn Any + Send + Sync> = self.owner.clone();
+        match owner_any.downcast::<T>() {
+            Ok(owner) => Ok(owner),
+            Err(_) => Err(self),
+        }
     }
 
     /// Attempt to reclaim the owner as `T` if this is the

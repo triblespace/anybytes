@@ -25,6 +25,9 @@
 - replaced `ByteOwner::as_any` with trait upcasting for simpler downcasting
 - rewrote `winnow::view` to use safe helpers and added `view_elems(count)` parser
 - `winnow::view_elems` now returns a Parser closure for idiomatic usage
+- replaced `ByteOwner::as_any` with trait upcasting to `Any`
+- `Bytes::downcast_to_owner` and `View::downcast_to_owner` now return `Result`
+  and return the original value on failure
   in a dedicated AGENTS section
 - add tests for weak reference upgrade/downgrade and Kani proofs for view helpers
 - add examples for quick start and PyBytes usage
@@ -45,6 +48,8 @@
 - added `ByteSource` support for `memmap2::MmapMut` and `Cow<'static, [T]>` with `zerocopy`
 - split `Cow` ByteSource tests into dedicated cases
 - skip Python examples when the `pyo3` feature is disabled to fix `cargo test`
+- added `Bytes::map_file` helper for convenient file mapping
+  (accepts any `memmap2::MmapAsRawDesc`, e.g. `&File` or `&NamedTempFile`)
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
