@@ -50,6 +50,9 @@
 - skip Python examples when the `pyo3` feature is disabled to fix `cargo test`
 - added `Bytes::map_file` helper for convenient file mapping
   (accepts any `memmap2::MmapAsRawDesc`, e.g. `&File` or `&NamedTempFile`)
+- reverted automatic installation of Python development packages in the
+  preflight script; rely on the system `python3-dev` package
+- set the preflight script to use Python 3.12 for building pyo3 code
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
