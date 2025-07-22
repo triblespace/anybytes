@@ -56,6 +56,7 @@
 - added README example demonstrating `Bytes::try_unwrap_owner`
 - expanded `ByteOwner` trait docs to clarify lifetime requirements and trait
   upcasting for downcasting
+- removed rope-like store integration and async wrappers from the inventory
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`

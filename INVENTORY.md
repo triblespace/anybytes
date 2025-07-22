@@ -4,8 +4,7 @@
 - None at the moment.
 
 ## Desired Functionality
-- Add ByteSource integration for rope-like stores.
-- Provide asynchronous-friendly wrappers without forcing async code in the core.
+- None at the moment.
 
 ## Discovered Issues
 - None at the moment.
