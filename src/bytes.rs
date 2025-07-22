@@ -97,10 +97,15 @@ pub unsafe trait ByteSource {
 
 /// A trait for types that keep the backing bytes of [`Bytes`] alive.
 ///
+/// Implementors must guarantee that the returned `Arc<dyn ByteOwner>` keeps
+/// the underlying storage valid for as long as that `Arc` is held.  Dropping
+/// the original value must not invalidate any [`Bytes`] or [`View`](crate::view::View)
+/// instances that cloned the owner.
+///
 /// This trait extends [`Any`] so that owners can be downcast directly via
-/// [`Arc::downcast`].  No conversion method is required; callers can simply
-/// upcast the owner `Arc` to `Arc<dyn Any + Send + Sync>` and attempt a
-/// downcast.
+/// [`Arc::downcast`].  Callers can upcast the owner to
+/// `Arc<dyn Any + Send + Sync>` and then attempt a downcast to reclaim the
+/// concrete type.
 pub trait ByteOwner: Any + Sync + Send {}
 
 impl<T: ByteSource + Sync + Send + 'static> ByteOwner for T {}
