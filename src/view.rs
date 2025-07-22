@@ -12,6 +12,7 @@ use std::cmp::Ordering;
 use crate::bytes::is_subslice;
 use crate::erase_lifetime;
 use crate::{bytes::ByteOwner, Bytes};
+use std::any::Any;
 use std::sync::Weak;
 use std::{fmt::Debug, hash::Hash, ops::Deref, sync::Arc};
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryCastError, TryFromBytes};
@@ -232,8 +233,8 @@ impl<T: ?Sized + Immutable> View<T> {
         O: Send + Sync + 'static,
     {
         let owner = self.owner;
-        let owner = ByteOwner::as_any(owner);
-        owner.downcast::<O>().ok()
+        let any: Arc<dyn Any + Send + Sync> = owner;
+        Arc::downcast::<O>(any).ok()
     }
 
     /// Create a weak pointer.

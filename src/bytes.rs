@@ -95,16 +95,14 @@ pub unsafe trait ByteSource {
 }
 
 /// A trait for types that keep the backing bytes of [`Bytes`] alive.
-pub trait ByteOwner: Sync + Send + 'static {
-    /// Convert the owner into a type-erased [`Arc`] for downcasting.
-    fn as_any(self: Arc<Self>) -> Arc<dyn Any + Sync + Send>;
-}
+///
+/// This trait extends [`Any`] so that owners can be downcast directly via
+/// [`Arc::downcast`].  No conversion method is required; callers can simply
+/// upcast the owner `Arc` to `Arc<dyn Any + Send + Sync>` and attempt a
+/// downcast.
+pub trait ByteOwner: Any + Sync + Send + 'static {}
 
-impl<T: ByteSource + Sync + Send + 'static> ByteOwner for T {
-    fn as_any(self: Arc<Self>) -> Arc<dyn Any + Sync + Send> {
-        self
-    }
-}
+impl<T: ByteSource + Sync + Send + 'static> ByteOwner for T {}
 
 /// Immutable bytes with zero-copy slicing and cloning.
 ///
@@ -230,8 +228,45 @@ impl Bytes {
         T: Send + Sync + 'static,
     {
         let owner = self.owner;
-        let owner = ByteOwner::as_any(owner);
-        owner.downcast::<T>().ok()
+        Arc::downcast::<T>(owner).ok()
+    }
+
+    /// Attempt to reclaim the owner as `T` if this is the
+    /// last strong reference.
+    ///
+    /// Returns `Ok(T)` on success, otherwise returns the
+    /// original `Bytes` if the owner is of a different type or
+    /// still referenced elsewhere.
+    pub fn try_unwrap_owner<T>(self) -> Result<T, Self>
+    where
+        T: ByteOwner + Send + Sync + 'static,
+    {
+        // Destructure to make it explicit that `self` is moved.
+        let Self { data, owner } = self;
+
+        // Verify the concrete type without releasing the owner yet.
+        let any: Arc<dyn Any + Send + Sync> = owner.clone();
+        let arc_t = match Arc::downcast::<T>(any) {
+            Ok(arc_t) => arc_t,
+            Err(_) => return Err(Self { data, owner }),
+        };
+
+        // Avoid dangling `data` when dropping the owner by switching to a
+        // raw pointer right before we release our dynamic reference.
+        let data_ptr = data as *const [u8];
+
+        // Drop our dynamic reference so the downcasted `Arc` becomes unique.
+        drop(owner);
+
+        match Arc::try_unwrap(arc_t) {
+            Ok(t) => Ok(t),
+            Err(arc_t) => {
+                // Another strong reference exists; rebuild the `Bytes`.
+                let owner: Arc<dyn ByteOwner> = arc_t;
+                let data = unsafe { &*data_ptr };
+                Err(Self { data, owner })
+            }
+        }
     }
 
     /// Returns a slice of self for the provided range.

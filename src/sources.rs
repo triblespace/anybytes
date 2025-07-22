@@ -240,18 +240,10 @@ unsafe impl ByteSource for memmap2::MmapMut {
 }
 
 #[cfg(feature = "mmap")]
-impl ByteOwner for memmap2::MmapRaw {
-    fn as_any(self: std::sync::Arc<Self>) -> std::sync::Arc<dyn std::any::Any + Sync + Send> {
-        self
-    }
-}
+impl ByteOwner for memmap2::MmapRaw {}
 
 #[cfg(feature = "pyo3")]
-impl ByteOwner for pyo3::Py<pyo3::types::PyBytes> {
-    fn as_any(self: std::sync::Arc<Self>) -> std::sync::Arc<dyn std::any::Any + Sync + Send> {
-        self
-    }
-}
+impl ByteOwner for pyo3::Py<pyo3::types::PyBytes> {}
 
 #[cfg(feature = "pyo3")]
 unsafe impl<'py> ByteSource for pyo3::Bound<'py, pyo3::types::PyBytes> {
