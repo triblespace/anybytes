@@ -16,6 +16,13 @@
 - implemented `Stream` directly for `Bytes` with a safe `iter_offsets` iterator
 - added `pop_back` and `pop_front` helpers and rewrote parser examples
 - removed the Completed Work section from `INVENTORY.md` and documented its use
+- added `Bytes::try_unwrap_owner` to reclaim the owner when uniquely held
+- simplified `Bytes::try_unwrap_owner` implementation
+- fixed potential UB in `Bytes::try_unwrap_owner` for custom owners
+- prevent dangling `data` by dropping references before unwrapping the owner
+- refined `Bytes::try_unwrap_owner` to cast the data slice to a pointer only
+  when the owner type matches
+- replaced `ByteOwner::as_any` with trait upcasting for simpler downcasting
 - rewrote `winnow::view` to use safe helpers and added `view_elems(count)` parser
 - `winnow::view_elems` now returns a Parser closure for idiomatic usage
 - replaced `ByteOwner::as_any` with trait upcasting to `Any`

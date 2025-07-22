@@ -43,6 +43,24 @@ fn test_downcast() {
 }
 
 #[test]
+fn test_try_unwrap_owner() {
+    // Success when the owner is uniquely referenced
+    let b = Bytes::from(b"abcd".to_vec());
+    let v = b.try_unwrap_owner::<Vec<u8>>().expect("unwrap owner");
+    assert_eq!(v, b"abcd".to_vec());
+
+    // Failure when multiple references exist
+    let b1 = Bytes::from(b"abcd".to_vec());
+    let b2 = b1.clone();
+    let result = b1.try_unwrap_owner::<Vec<u8>>();
+    assert!(result.is_err());
+
+    // Failure when type does not match
+    let other = b2.try_unwrap_owner::<String>();
+    assert!(other.is_err());
+}
+
+#[test]
 fn test_bytes_debug_format() {
     let v = b"printable\t\r\n\'\"\\\x00\x01\x02printable".to_vec();
     let b = Bytes::from(v);
