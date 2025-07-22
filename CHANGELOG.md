@@ -50,6 +50,8 @@
 - skip Python examples when the `pyo3` feature is disabled to fix `cargo test`
 - added `Bytes::map_file` helper for convenient file mapping
   (accepts any `memmap2::MmapAsRawDesc`, e.g. `&File` or `&NamedTempFile`)
+- expanded `ByteOwner` trait docs to clarify lifetime requirements and trait
+  upcasting for downcasting
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
