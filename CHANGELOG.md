@@ -53,6 +53,9 @@
 - reverted automatic installation of Python development packages in the
   preflight script; rely on the system `python3-dev` package
 - set the preflight script to use Python 3.12 for building pyo3 code
+- added README example demonstrating `Bytes::try_unwrap_owner`
+- expanded `ByteOwner` trait docs to clarify lifetime requirements and trait
+  upcasting for downcasting
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`

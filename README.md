@@ -46,6 +46,19 @@ fn main() {
 
 The full example is available in [`examples/quick_start.rs`](examples/quick_start.rs).
 
+## Reclaiming Ownership
+
+`Bytes::try_unwrap_owner` allows recovering the original owner when no other
+references exist.
+
+```rust
+use anybytes::Bytes;
+
+let bytes = Bytes::from(vec![1u8, 2, 3]);
+let vec = bytes.try_unwrap_owner::<Vec<u8>>().expect("unique owner");
+assert_eq!(vec, vec![1, 2, 3]);
+```
+
 ## Advanced Usage
 
 `Bytes` can directly wrap memory-mapped files or other large buffers.  Combined
@@ -87,6 +100,7 @@ needs these libraries installed; otherwise disable the feature during testing.
 ## Examples
 
 - [`examples/quick_start.rs`](examples/quick_start.rs) – the quick start shown above
+- [`examples/try_unwrap_owner.rs`](examples/try_unwrap_owner.rs) – reclaim the owner when uniquely referenced
 - [`examples/pybytes.rs`](examples/pybytes.rs) – demonstrates the `pyo3` feature using `PyBytes`
 - [`examples/from_python.rs`](examples/from_python.rs) – wrap a Python `bytes` object into `Bytes`
 
