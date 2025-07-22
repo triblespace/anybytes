@@ -119,8 +119,8 @@ needs these libraries installed; otherwise disable the feature during testing.
 ## Development
 
 Run `./scripts/preflight.sh` from the repository root before committing. The
-script formats the code and executes all tests, automatically installing required
-tools if needed.
+script formats the code and executes all tests using Python 3.12 for the `pyo3`
+feature.
 
 Kani proofs are executed separately with `./scripts/verify.sh`, which should be
 run on a dedicated system. The script will install the Kani verifier
