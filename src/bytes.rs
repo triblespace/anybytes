@@ -396,6 +396,12 @@ impl<T: ByteSource> From<T> for Bytes {
     }
 }
 
+/// Creates `Bytes` directly from an [`Arc`] containing the source.
+///
+/// This reuses the provided `Arc` as the owner so there is no extra
+/// allocation. Common containers like `Arc<Vec<u8>>` therefore work
+/// out of the box without needing a special wrapper type or an
+/// additional `ByteSource` implementation.
 impl<T: ByteSource + ByteOwner> From<Arc<T>> for Bytes {
     fn from(arc: Arc<T>) -> Self {
         Self::from_owning_source_arc(arc)
