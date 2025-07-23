@@ -57,6 +57,13 @@
 - expanded `ByteOwner` trait docs to clarify lifetime requirements and trait
   upcasting for downcasting
 - removed rope-like store integration and async wrappers from the inventory
+- noted new suggestions in `INVENTORY.md` for future work
+- clarified that implementing `ByteSource` for `Arc` types would double wrap the
+  owner and updated `INVENTORY.md` accordingly
+- removed the `serde` support idea from the inventory
+- removed the unsafe derive macro idea from the inventory
+- removed the `Iterator` support idea from the inventory as `Bytes` already
+  dereferences to `[u8]`
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
