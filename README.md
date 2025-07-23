@@ -98,6 +98,9 @@ fn read_header(file: &std::fs::File) -> std::io::Result<anybytes::view::View<Hea
 }
 ```
 
+To map only a portion of a file use the unsafe helper
+`Bytes::map_file_region(file, offset, len)`.
+
 ## Features
 
 By default the crate enables the `mmap` and `zerocopy` features.

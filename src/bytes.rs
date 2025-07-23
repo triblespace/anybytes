@@ -233,6 +233,31 @@ impl Bytes {
         Ok(Self::from_source(map))
     }
 
+    /// Memory-map a specific region of the given file descriptor and return the
+    /// bytes.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the mapped file is not modified for the
+    /// lifetime of the returned [`Bytes`]. Changing the file contents while it
+    /// is mapped can lead to undefined behavior. The file handle does not need
+    /// to remain open after mapping. The `offset` must meet the underlying
+    /// platform's alignment requirements (typically page size).
+    ///
+    /// The argument may be any type that implements [`memmap2::MmapAsRawDesc`],
+    /// such as [`&std::fs::File`] or [`&tempfile::NamedTempFile`].
+    #[cfg(feature = "mmap")]
+    pub unsafe fn map_file_region<F>(file: F, offset: u64, len: usize) -> std::io::Result<Self>
+    where
+        F: memmap2::MmapAsRawDesc,
+    {
+        let map = memmap2::MmapOptions::new()
+            .offset(offset)
+            .len(len)
+            .map(file)?;
+        Ok(Self::from_source(map))
+    }
+
     #[inline]
     pub(crate) fn as_slice<'a>(&'a self) -> &'a [u8] {
         self.data
