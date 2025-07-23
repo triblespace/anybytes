@@ -433,6 +433,13 @@ impl<T: ByteSource + ByteOwner> From<Arc<T>> for Bytes {
     }
 }
 
+#[cfg(feature = "bytes")]
+impl From<Bytes> for bytes::Bytes {
+    fn from(bytes: Bytes) -> Self {
+        bytes::Bytes::from_owner(bytes)
+    }
+}
+
 impl Deref for Bytes {
     type Target = [u8];
     #[inline]
@@ -498,6 +505,27 @@ impl fmt::Debug for Bytes {
         }
         f.write_str("\"")?;
         Ok(())
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl bytes::Buf for Bytes {
+    #[inline]
+    fn remaining(&self) -> usize {
+        self.data.len()
+    }
+
+    #[inline]
+    fn chunk(&self) -> &[u8] {
+        self.data
+    }
+
+    #[inline]
+    fn advance(&mut self, cnt: usize) {
+        if cnt > self.data.len() {
+            panic!("advance out of bounds: {} > {}", cnt, self.data.len());
+        }
+        self.data = &self.data[cnt..];
     }
 }
 
