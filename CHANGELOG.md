@@ -64,6 +64,8 @@
 - removed the unsafe derive macro idea from the inventory
 - removed the `Iterator` support idea from the inventory as `Bytes` already
   dereferences to `[u8]`
+- documented creating `Bytes` from `Arc` sources without an extra wrapper and
+  removed the corresponding task from the inventory
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`

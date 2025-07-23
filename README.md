@@ -46,6 +46,23 @@ fn main() {
 
 The full example is available in [`examples/quick_start.rs`](examples/quick_start.rs).
 
+## Arc Sources
+
+`Bytes` can also be created directly from an `Arc` holding a byte container.
+This avoids allocating another `Arc` wrapper:
+
+```rust
+use anybytes::Bytes;
+use std::sync::Arc;
+
+let data = Arc::new(vec![1u8, 2, 3, 4]);
+let bytes = Bytes::from(data.clone());
+assert_eq!(bytes.as_ref(), data.as_slice());
+```
+
+Implementing `ByteSource` for `Arc<[u8]>` or `Arc<Vec<u8>>` is therefore
+unnecessary, since `Bytes::from` already reuses the provided `Arc`.
+
 ## Reclaiming Ownership
 
 `Bytes::try_unwrap_owner` allows recovering the original owner when no other
