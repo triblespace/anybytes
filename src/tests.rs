@@ -247,6 +247,17 @@ fn test_map_file() {
     assert_eq!(bytes.as_ref(), b"testfile");
 }
 
+#[cfg(feature = "mmap")]
+#[test]
+fn test_map_file_region() {
+    use std::io::Write;
+    let mut file = tempfile::NamedTempFile::new().expect("temp file");
+    file.write_all(b"abcdef").expect("write");
+    file.flush().unwrap();
+    let bytes = unsafe { Bytes::map_file_region(&file, 1, 3) }.expect("map file region");
+    assert_eq!(bytes.as_ref(), b"bcd");
+}
+
 #[test]
 fn test_cow_u8_owned_source() {
     use std::borrow::Cow;
