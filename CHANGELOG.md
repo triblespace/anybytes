@@ -18,6 +18,9 @@
 - removed the Completed Work section from `INVENTORY.md` and documented its use
 - added `Bytes::try_unwrap_owner` to reclaim the owner when uniquely held
 - simplified `Bytes::try_unwrap_owner` implementation
+- added `ByteBuffer` for owning aligned byte allocations
+- compile-time assertion that `ALIGN` is a power of two
+- added `reserve_total` to `ByteBuffer` for reserving absolute capacity
 - fixed potential UB in `Bytes::try_unwrap_owner` for custom owners
 - prevent dangling `data` by dropping references before unwrapping the owner
 - refined `Bytes::try_unwrap_owner` to cast the data slice to a pointer only

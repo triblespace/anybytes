@@ -302,3 +302,40 @@ fn test_cow_zerocopy_borrowed_source() {
         zerocopy::IntoBytes::as_bytes(borrowed.as_ref())
     );
 }
+
+#[test]
+fn test_bytebuffer_push_and_bytes() {
+    use crate::ByteBuffer;
+
+    let mut buf: ByteBuffer<8> = ByteBuffer::with_capacity(2);
+    buf.push(1);
+    buf.push(2);
+    buf.push(3);
+    assert_eq!(buf.as_ref(), &[1, 2, 3]);
+
+    let bytes: Bytes = buf.into();
+    assert_eq!(bytes.as_ref(), &[1, 2, 3]);
+}
+
+#[test]
+fn test_bytebuffer_alignment() {
+    use crate::ByteBuffer;
+
+    let mut buf: ByteBuffer<64> = ByteBuffer::with_capacity(1);
+    buf.push(1);
+    assert_eq!((buf.as_ptr() as usize) % 64, 0);
+}
+
+#[test]
+fn test_bytebuffer_reserve_total() {
+    use crate::ByteBuffer;
+
+    let mut buf: ByteBuffer<8> = ByteBuffer::new();
+    buf.reserve_total(10);
+    assert!(buf.capacity() >= 10);
+    for _ in 0..10 {
+        buf.push(1);
+    }
+    assert_eq!(buf.len(), 10);
+    assert!(buf.capacity() >= 10);
+}

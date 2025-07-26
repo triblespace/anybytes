@@ -42,7 +42,7 @@ use zerocopy::Immutable;
 use zerocopy::IntoBytes;
 
 #[allow(unused_imports)]
-use crate::{bytes::ByteOwner, ByteSource};
+use crate::{buffer::ByteBuffer, bytes::ByteOwner, ByteSource};
 
 #[cfg(feature = "zerocopy")]
 unsafe impl<T> ByteSource for &'static [T]
@@ -122,6 +122,18 @@ where
 
 #[cfg(not(feature = "zerocopy"))]
 unsafe impl ByteSource for Vec<u8> {
+    type Owner = Self;
+
+    fn as_bytes(&self) -> &[u8] {
+        self.as_ref()
+    }
+
+    fn get_owner(self) -> Self::Owner {
+        self
+    }
+}
+
+unsafe impl<const ALIGN: usize> ByteSource for ByteBuffer<ALIGN> {
     type Owner = Self;
 
     fn as_bytes(&self) -> &[u8] {
