@@ -308,9 +308,9 @@ fn test_bytebuffer_push_and_bytes() {
     use crate::ByteBuffer;
 
     let mut buf: ByteBuffer<8> = ByteBuffer::with_capacity(2);
-    buf.push(1);
-    buf.push(2);
-    buf.push(3);
+    buf.push(1u8);
+    buf.push(2u8);
+    buf.push(3u8);
     assert_eq!(buf.as_ref(), &[1, 2, 3]);
 
     let bytes: Bytes = buf.into();
@@ -322,7 +322,7 @@ fn test_bytebuffer_alignment() {
     use crate::ByteBuffer;
 
     let mut buf: ByteBuffer<64> = ByteBuffer::with_capacity(1);
-    buf.push(1);
+    buf.push(1u8);
     assert_eq!((buf.as_ptr() as usize) % 64, 0);
 }
 
@@ -334,7 +334,7 @@ fn test_bytebuffer_reserve_total() {
     buf.reserve_total(10);
     assert!(buf.capacity() >= 10);
     for _ in 0..10 {
-        buf.push(1);
+        buf.push(1u8);
     }
     assert_eq!(buf.len(), 10);
     assert!(buf.capacity() >= 10);
