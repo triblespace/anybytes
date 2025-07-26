@@ -102,13 +102,28 @@ impl<const ALIGN: usize> ByteBuffer<ALIGN> {
         self.cap = new_cap;
     }
 
-    /// Push a byte to the end of the buffer.
+    /// Push data to the end of the buffer.
+    #[cfg(not(feature = "zerocopy"))]
     pub fn push(&mut self, byte: u8) {
         self.reserve_more(1);
         unsafe {
             ptr::write(self.ptr.as_ptr().add(self.len), byte);
         }
         self.len += 1;
+    }
+
+    /// Push data to the end of the buffer.
+    #[cfg(feature = "zerocopy")]
+    pub fn push<T>(&mut self, value: T)
+    where
+        T: zerocopy::IntoBytes + zerocopy::Immutable,
+    {
+        let bytes = zerocopy::IntoBytes::as_bytes(&value);
+        self.reserve_more(bytes.len());
+        unsafe {
+            ptr::copy_nonoverlapping(bytes.as_ptr(), self.ptr.as_ptr().add(self.len), bytes.len());
+        }
+        self.len += bytes.len();
     }
 
     /// Returns a raw pointer to the buffer's memory.

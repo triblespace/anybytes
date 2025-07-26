@@ -6,6 +6,8 @@
 - install `rustfmt` and the Kani verifier automatically via `cargo install`
 - restore Kani proof best practices in `AGENTS.md` and note that proofs run via `verify.sh`
 - limit Kani loop unwind by default and set per-harness bounds
+- `ByteBuffer::push` now accepts any `IntoBytes + Immutable` value when the
+  `zerocopy` feature is enabled
 - increase unwind for prefix/suffix overflow proofs
 - move weak reference and downcasting examples into module docs
 - expand module introduction describing use cases
