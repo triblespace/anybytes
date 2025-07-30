@@ -9,7 +9,8 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
-pub mod buffer;
+#[cfg(all(feature = "mmap", feature = "zerocopy"))]
+pub mod arena;
 /// Core byte container types and traits.
 pub mod bytes;
 mod sources;
@@ -29,7 +30,8 @@ pub mod winnow;
 #[cfg(test)]
 mod tests;
 
-pub use crate::buffer::ByteBuffer;
+#[cfg(all(feature = "mmap", feature = "zerocopy"))]
+pub use crate::arena::{Buffer, ByteArena};
 pub use crate::bytes::ByteOwner;
 pub use crate::bytes::ByteSource;
 pub use crate::bytes::Bytes;

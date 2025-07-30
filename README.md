@@ -101,6 +101,27 @@ fn read_header(file: &std::fs::File) -> std::io::Result<anybytes::view::View<Hea
 To map only a portion of a file use the unsafe helper
 `Bytes::map_file_region(file, offset, len)`.
 
+### Byte Arena
+
+Use `ByteArena` to incrementally build immutable bytes on disk:
+
+```rust
+use anybytes::arena::ByteArena;
+
+let mut arena = ByteArena::new().unwrap();
+let mut buffer = arena.write::<u8>(4).unwrap();
+buffer.copy_from_slice(b"test");
+let bytes = buffer.finish().unwrap();
+assert_eq!(bytes.as_ref(), b"test".as_ref());
+let all = arena.finish().unwrap();
+assert_eq!(all.as_ref(), b"test".as_ref());
+```
+
+Call `arena.persist(path)` to keep the temporary file instead of mapping it.
+
+The arena only aligns allocations to the element type and may share pages
+between adjacent buffers to minimize wasted space.
+
 ## Features
 
 By default the crate enables the `mmap` and `zerocopy` features.
