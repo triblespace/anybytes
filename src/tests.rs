@@ -303,39 +303,116 @@ fn test_cow_zerocopy_borrowed_source() {
     );
 }
 
+#[cfg(all(feature = "mmap", feature = "zerocopy"))]
 #[test]
-fn test_bytebuffer_push_and_bytes() {
-    use crate::ByteBuffer;
+fn test_arena_single_write() {
+    use crate::arena::ByteArena;
 
-    let mut buf: ByteBuffer<8> = ByteBuffer::with_capacity(2);
-    buf.push(1u8);
-    buf.push(2u8);
-    buf.push(3u8);
-    assert_eq!(buf.as_ref(), &[1, 2, 3]);
+    let mut arena = ByteArena::new().expect("arena");
+    let mut buffer = arena.write::<u8>(4).expect("write");
+    buffer.as_mut_slice().copy_from_slice(b"test");
+    let bytes = buffer.finish().expect("finish buffer");
+    assert_eq!(bytes.as_ref(), b"test");
 
-    let bytes: Bytes = buf.into();
-    assert_eq!(bytes.as_ref(), &[1, 2, 3]);
+    let all = arena.finish().expect("finish arena");
+    assert_eq!(all.as_ref(), b"test");
 }
 
+#[cfg(all(feature = "mmap", feature = "zerocopy"))]
 #[test]
-fn test_bytebuffer_alignment() {
-    use crate::ByteBuffer;
+fn test_arena_multiple_writes() {
+    use crate::arena::ByteArena;
 
-    let mut buf: ByteBuffer<64> = ByteBuffer::with_capacity(1);
-    buf.push(1u8);
-    assert_eq!((buf.as_ptr() as usize) % 64, 0);
+    let mut arena = ByteArena::new().expect("arena");
+
+    let mut a = arena.write::<u8>(5).expect("write");
+    a.as_mut_slice().copy_from_slice(b"first");
+    let bytes_a = a.finish().expect("finish");
+    assert_eq!(bytes_a.as_ref(), b"first");
+
+    let mut b = arena.write::<u8>(6).expect("write");
+    b.as_mut_slice().copy_from_slice(b"second");
+    let bytes_b = b.finish().expect("finish");
+    assert_eq!(bytes_b.as_ref(), b"second");
+
+    let all = arena.finish().expect("finish arena");
+    assert_eq!(all.as_ref(), b"firstsecond");
 }
 
+#[cfg(all(feature = "mmap", feature = "zerocopy"))]
 #[test]
-fn test_bytebuffer_reserve_total() {
-    use crate::ByteBuffer;
+fn test_arena_typed() {
+    use crate::arena::ByteArena;
 
-    let mut buf: ByteBuffer<8> = ByteBuffer::new();
-    buf.reserve_total(10);
-    assert!(buf.capacity() >= 10);
-    for _ in 0..10 {
-        buf.push(1u8);
+    #[derive(zerocopy::FromBytes, zerocopy::Immutable, Clone, Copy)]
+    #[repr(C)]
+    struct Pair {
+        a: u16,
+        b: u32,
     }
-    assert_eq!(buf.len(), 10);
-    assert!(buf.capacity() >= 10);
+
+    let mut arena = ByteArena::new().expect("arena");
+    let mut buffer = arena.write::<Pair>(2).expect("write");
+    buffer.as_mut_slice()[0] = Pair { a: 1, b: 2 };
+    buffer.as_mut_slice()[1] = Pair { a: 3, b: 4 };
+    let bytes = buffer.finish().expect("finish");
+
+    let expected = unsafe {
+        core::slice::from_raw_parts(
+            [Pair { a: 1, b: 2 }, Pair { a: 3, b: 4 }].as_ptr() as *const u8,
+            2 * core::mem::size_of::<Pair>(),
+        )
+    };
+    assert_eq!(bytes.as_ref(), expected);
+}
+
+#[cfg(all(feature = "mmap", feature = "zerocopy"))]
+#[test]
+fn test_arena_persist() {
+    use crate::arena::ByteArena;
+    use std::fs;
+
+    let dir = tempfile::tempdir().expect("dir");
+    let path = dir.path().join("persist.bin");
+
+    let mut arena = ByteArena::new().expect("arena");
+    let mut buffer = arena.write::<u8>(7).expect("write");
+    buffer.as_mut_slice().copy_from_slice(b"persist");
+    buffer.finish().expect("finish buffer");
+
+    let _file = arena.persist(&path).expect("persist file");
+    let data = fs::read(&path).expect("read");
+    assert_eq!(data.as_slice(), b"persist");
+}
+
+#[cfg(all(feature = "mmap", feature = "zerocopy"))]
+#[test]
+fn test_arena_alignment_padding() {
+    use crate::arena::ByteArena;
+
+    let mut arena = ByteArena::new().expect("arena");
+
+    let mut a = arena.write::<u8>(1).expect("write");
+    a.as_mut_slice()[0] = 1;
+    let bytes_a = a.finish().expect("finish a");
+    assert_eq!(bytes_a.as_ref(), &[1]);
+
+    let mut b = arena.write::<u32>(1).expect("write");
+    b.as_mut_slice()[0] = 0x01020304;
+    let bytes_b = b.finish().expect("finish b");
+    assert_eq!(bytes_b.as_ref(), &0x01020304u32.to_ne_bytes());
+
+    let mut c = arena.write::<u16>(1).expect("write");
+    c.as_mut_slice()[0] = 0x0506;
+    let bytes_c = c.finish().expect("finish c");
+    assert_eq!(bytes_c.as_ref(), &0x0506u16.to_ne_bytes());
+
+    let all = arena.finish().expect("finish arena");
+
+    let mut expected = Vec::new();
+    expected.extend_from_slice(&[1]);
+    expected.extend_from_slice(&[0; 3]);
+    expected.extend_from_slice(&0x01020304u32.to_ne_bytes());
+    expected.extend_from_slice(&0x0506u16.to_ne_bytes());
+    assert_eq!(all.as_ref(), expected.as_slice());
 }

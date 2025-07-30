@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- added `ByteArena` for staged file writes with `Buffer::finish()` to return `Bytes`
+- `ByteArena::write` now accepts a zerocopy type instead of an alignment constant
+- `ByteArena` reuses previous pages so allocations align only to the element type
+- `Buffer::finish` converts the writable mapping to read-only instead of remapping
+- documented all fields in `ByteArena` and `Buffer`
+- documented ByteArena usage under advanced usage with proper heading
+- added `ByteArena::persist` to rename the temporary file
+- removed the old `ByteBuffer` type in favor of `ByteArena`
+- added tests covering `ByteArena` writes, typed buffers and persistence
+- added test verifying alignment padding between differently aligned writes
 - split Kani verification into `verify.sh` and streamline `preflight.sh`
 - clarify that `verify.sh` runs on a dedicated system and document avoiding async code
 - install `rustfmt` and the Kani verifier automatically via `cargo install`
