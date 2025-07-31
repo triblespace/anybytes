@@ -6,12 +6,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-//! Temporary byte arena backed by a file.
+//! Temporary byte area backed by a file.
 //!
-//! The arena allows staged writing through [`ByteArena::write`]. Each
-//! call returns a mutable [`Buffer`] bound to the arena so only one
-//! writer can exist at a time. Finalizing the buffer via
-//! [`Buffer::finish`] remaps the written range as immutable and
+//! The area offers staged writing through a [`SectionWriter`]. Each call to
+//! [`SectionWriter::reserve`] returns a mutable [`Section`] tied to the area's
+//! lifetime. Multiple sections may coexist; their byte ranges do not overlap.
+//! Freezing a section via [`Section::freeze`] remaps its range as immutable and
 //! returns [`Bytes`].
 
 use std::io::{self, Seek, SeekFrom};
@@ -31,93 +31,98 @@ fn align_up(val: usize, align: usize) -> usize {
     (val + align - 1) & !(align - 1)
 }
 
-/// Arena managing a temporary file.
+/// Area managing a temporary file.
 #[derive(Debug)]
-pub struct ByteArena {
-    /// Temporary file backing the arena.
+pub struct ByteArea {
+    /// Temporary file backing the area.
     file: NamedTempFile,
     /// Current length of initialized data in bytes.
     len: usize,
 }
 
-impl ByteArena {
-    /// Create a new empty arena.
+impl ByteArea {
+    /// Create a new empty area.
     pub fn new() -> io::Result<Self> {
         let file = NamedTempFile::new()?;
         Ok(Self { file, len: 0 })
     }
 
-    /// Start a new write of `elems` elements of type `T`.
-    pub fn write<'a, T>(&'a mut self, elems: usize) -> io::Result<Buffer<'a, T>>
+    /// Obtain a handle for reserving sections.
+    pub fn sections(&mut self) -> SectionWriter<'_> {
+        SectionWriter { area: self }
+    }
+
+    /// Freeze the area and return immutable bytes for the entire file.
+    pub fn freeze(self) -> io::Result<Bytes> {
+        let file = self.file.into_file();
+        let mmap = unsafe { memmap2::MmapOptions::new().map(&file)? };
+        Ok(Bytes::from_source(mmap))
+    }
+
+    /// Persist the temporary area file to `path` and return the underlying [`File`].
+    pub fn persist<P: AsRef<std::path::Path>>(self, path: P) -> io::Result<std::fs::File> {
+        self.file.persist(path).map_err(Into::into)
+    }
+}
+
+/// RAII guard giving temporary exclusive write access.
+#[derive(Debug)]
+pub struct SectionWriter<'area> {
+    area: &'area mut ByteArea,
+}
+
+impl<'area> SectionWriter<'area> {
+    /// Reserve a new section inside the area.
+    pub fn reserve<T>(&mut self, elems: usize) -> io::Result<Section<'area, T>>
     where
         T: FromBytes + Immutable,
     {
         let page = page_size::get();
         let align = core::mem::align_of::<T>();
         let len_bytes = core::mem::size_of::<T>() * elems;
-        let start = align_up(self.len, align);
+        let start = align_up(self.area.len, align);
         let end = start + len_bytes;
-        self.file.as_file_mut().set_len(end as u64)?;
-        // Ensure subsequent mappings see the extended size.
-        self.file.as_file_mut().seek(SeekFrom::Start(end as u64))?;
 
-        // Map must start on a page boundary; round `start` down while
-        // keeping track of how far into the mapping the buffer begins.
         let aligned_offset = start & !(page - 1);
         let offset = start - aligned_offset;
         let map_len = end - aligned_offset;
 
+        let file = &mut self.area.file;
+        file.as_file_mut().set_len(end as u64)?;
+        // Ensure subsequent mappings see the extended size.
+        file.as_file_mut().seek(SeekFrom::Start(end as u64))?;
         let mmap = unsafe {
             memmap2::MmapOptions::new()
                 .offset(aligned_offset as u64)
                 .len(map_len)
-                .map_mut(self.file.as_file())?
+                .map_mut(file.as_file())?
         };
-        Ok(Buffer {
-            arena: self,
+
+        self.area.len = end;
+
+        Ok(Section {
             mmap,
-            start,
             offset,
             elems,
             _marker: PhantomData,
         })
     }
-
-    fn update_len(&mut self, end: usize) {
-        self.len = end;
-    }
-
-    /// Finalize the arena and return immutable bytes for the entire file.
-    pub fn finish(self) -> io::Result<Bytes> {
-        let file = self.file.into_file();
-        let mmap = unsafe { memmap2::MmapOptions::new().map(&file)? };
-        Ok(Bytes::from_source(mmap))
-    }
-
-    /// Persist the temporary arena file to `path` and return the underlying [`File`].
-    pub fn persist<P: AsRef<std::path::Path>>(self, path: P) -> io::Result<std::fs::File> {
-        self.file.persist(path).map_err(Into::into)
-    }
 }
 
-/// Mutable buffer for writing into a [`ByteArena`].
+/// Mutable section reserved from a [`ByteArea`].
 #[derive(Debug)]
-pub struct Buffer<'a, T> {
-    /// Arena that owns the underlying file.
-    arena: &'a mut ByteArena,
+pub struct Section<'arena, T> {
     /// Writable mapping for the current allocation.
     mmap: memmap2::MmapMut,
-    /// Start position of this buffer within the arena file in bytes.
-    start: usize,
     /// Offset from the beginning of `mmap` to the start of the buffer.
     offset: usize,
     /// Number of elements in the buffer.
     elems: usize,
-    /// Marker to tie the buffer to element type `T`.
-    _marker: PhantomData<T>,
+    /// Marker tying the section to the area and element type.
+    _marker: PhantomData<(&'arena ByteArea, *mut T)>,
 }
 
-impl<'a, T> Buffer<'a, T>
+impl<'arena, T> Section<'arena, T>
 where
     T: FromBytes + Immutable,
 {
@@ -129,21 +134,19 @@ where
         }
     }
 
-    /// Finalize the buffer and return immutable [`Bytes`].
-    pub fn finish(self) -> io::Result<Bytes> {
+    /// Freeze the section and return immutable [`Bytes`].
+    pub fn freeze(self) -> io::Result<Bytes> {
         self.mmap.flush()?;
         let len_bytes = self.elems * core::mem::size_of::<T>();
         let offset = self.offset;
-        let arena = self.arena;
         // Convert the writable mapping into a read-only view instead of
         // unmapping and remapping the region.
         let map = self.mmap.make_read_only()?;
-        arena.update_len(self.start + len_bytes);
         Ok(Bytes::from_source(map).slice(offset..offset + len_bytes))
     }
 }
 
-impl<'a, T> core::ops::Deref for Buffer<'a, T>
+impl<'arena, T> core::ops::Deref for Section<'arena, T>
 where
     T: FromBytes + Immutable,
 {
@@ -157,7 +160,7 @@ where
     }
 }
 
-impl<'a, T> core::ops::DerefMut for Buffer<'a, T>
+impl<'arena, T> core::ops::DerefMut for Section<'arena, T>
 where
     T: FromBytes + Immutable,
 {
@@ -169,7 +172,7 @@ where
     }
 }
 
-impl<'a, T> AsRef<[T]> for Buffer<'a, T>
+impl<'arena, T> AsRef<[T]> for Section<'arena, T>
 where
     T: FromBytes + Immutable,
 {
@@ -178,7 +181,7 @@ where
     }
 }
 
-impl<'a, T> AsMut<[T]> for Buffer<'a, T>
+impl<'arena, T> AsMut<[T]> for Section<'arena, T>
 where
     T: FromBytes + Immutable,
 {

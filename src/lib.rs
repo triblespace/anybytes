@@ -10,7 +10,7 @@
 #![warn(missing_docs)]
 
 #[cfg(all(feature = "mmap", feature = "zerocopy"))]
-pub mod arena;
+pub mod area;
 /// Core byte container types and traits.
 pub mod bytes;
 mod sources;
@@ -31,7 +31,7 @@ pub mod winnow;
 mod tests;
 
 #[cfg(all(feature = "mmap", feature = "zerocopy"))]
-pub use crate::arena::{Buffer, ByteArena};
+pub use crate::area::{ByteArea, Section, SectionWriter};
 pub use crate::bytes::ByteOwner;
 pub use crate::bytes::ByteSource;
 pub use crate::bytes::Bytes;
