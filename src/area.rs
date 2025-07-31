@@ -11,8 +11,8 @@
 //! The area offers staged writing through a [`SectionWriter`]. Each call to
 //! [`SectionWriter::reserve`] returns a mutable [`Section`] tied to the area's
 //! lifetime. Multiple sections may coexist; their byte ranges do not overlap.
-//! Finalizing a section via [`Section::finish`] remaps its range as immutable
-//! and returns [`Bytes`].
+//! Freezing a section via [`Section::freeze`] remaps its range as immutable and
+//! returns [`Bytes`].
 
 use std::io::{self, Seek, SeekFrom};
 use std::marker::PhantomData;
@@ -52,8 +52,8 @@ impl ByteArea {
         SectionWriter { area: self }
     }
 
-    /// Finalize the area and return immutable bytes for the entire file.
-    pub fn finish(self) -> io::Result<Bytes> {
+    /// Freeze the area and return immutable bytes for the entire file.
+    pub fn freeze(self) -> io::Result<Bytes> {
         let file = self.file.into_file();
         let mmap = unsafe { memmap2::MmapOptions::new().map(&file)? };
         Ok(Bytes::from_source(mmap))
@@ -134,8 +134,8 @@ where
         }
     }
 
-    /// Finalize the section and return immutable [`Bytes`].
-    pub fn finish(self) -> io::Result<Bytes> {
+    /// Freeze the section and return immutable [`Bytes`].
+    pub fn freeze(self) -> io::Result<Bytes> {
         self.mmap.flush()?;
         let len_bytes = self.elems * core::mem::size_of::<T>();
         let offset = self.offset;

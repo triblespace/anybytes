@@ -313,11 +313,11 @@ fn test_area_single_reserve() {
         let mut writer = area.writer();
         let mut section = writer.reserve::<u8>(4).expect("reserve");
         section.as_mut_slice().copy_from_slice(b"test");
-        let bytes = section.finish().expect("finish section");
+        let bytes = section.freeze().expect("freeze section");
         assert_eq!(bytes.as_ref(), b"test");
     }
 
-    let all = area.finish().expect("finish area");
+    let all = area.freeze().expect("freeze area");
     assert_eq!(all.as_ref(), b"test");
 }
 
@@ -332,16 +332,16 @@ fn test_area_multiple_reserves() {
 
         let mut a = writer.reserve::<u8>(5).expect("reserve");
         a.as_mut_slice().copy_from_slice(b"first");
-        let bytes_a = a.finish().expect("finish");
+        let bytes_a = a.freeze().expect("freeze");
         assert_eq!(bytes_a.as_ref(), b"first");
 
         let mut b = writer.reserve::<u8>(6).expect("reserve");
         b.as_mut_slice().copy_from_slice(b"second");
-        let bytes_b = b.finish().expect("finish");
+        let bytes_b = b.freeze().expect("freeze");
         assert_eq!(bytes_b.as_ref(), b"second");
     }
 
-    let all = area.finish().expect("finish area");
+    let all = area.freeze().expect("freeze area");
     assert_eq!(all.as_ref(), b"firstsecond");
 }
 
@@ -358,14 +358,14 @@ fn test_area_concurrent_sections() {
     a.as_mut_slice().copy_from_slice(b"first");
     b.as_mut_slice().copy_from_slice(b"second");
 
-    let bytes_b = b.finish().expect("finish b");
-    let bytes_a = a.finish().expect("finish a");
+    let bytes_b = b.freeze().expect("freeze b");
+    let bytes_a = a.freeze().expect("freeze a");
 
     assert_eq!(bytes_a.as_ref(), b"first");
     assert_eq!(bytes_b.as_ref(), b"second");
 
     drop(writer);
-    let all = area.finish().expect("finish area");
+    let all = area.freeze().expect("freeze area");
     assert_eq!(all.as_ref(), b"firstsecond");
 }
 
@@ -387,7 +387,7 @@ fn test_area_typed() {
         let mut section = writer.reserve::<Pair>(2).expect("reserve");
         section.as_mut_slice()[0] = Pair { a: 1, b: 2 };
         section.as_mut_slice()[1] = Pair { a: 3, b: 4 };
-        section.finish().expect("finish")
+        section.freeze().expect("freeze")
     };
 
     let expected = unsafe {
@@ -413,7 +413,7 @@ fn test_area_persist() {
         let mut writer = area.writer();
         let mut section = writer.reserve::<u8>(7).expect("reserve");
         section.as_mut_slice().copy_from_slice(b"persist");
-        section.finish().expect("finish section");
+        section.freeze().expect("freeze section");
     }
 
     let _file = area.persist(&path).expect("persist file");
@@ -432,21 +432,21 @@ fn test_area_alignment_padding() {
 
         let mut a = writer.reserve::<u8>(1).expect("reserve");
         a.as_mut_slice()[0] = 1;
-        let bytes_a = a.finish().expect("finish a");
+        let bytes_a = a.freeze().expect("freeze a");
         assert_eq!(bytes_a.as_ref(), &[1]);
 
         let mut b = writer.reserve::<u32>(1).expect("reserve");
         b.as_mut_slice()[0] = 0x01020304;
-        let bytes_b = b.finish().expect("finish b");
+        let bytes_b = b.freeze().expect("freeze b");
         assert_eq!(bytes_b.as_ref(), &0x01020304u32.to_ne_bytes());
 
         let mut c = writer.reserve::<u16>(1).expect("reserve");
         c.as_mut_slice()[0] = 0x0506;
-        let bytes_c = c.finish().expect("finish c");
+        let bytes_c = c.freeze().expect("freeze c");
         assert_eq!(bytes_c.as_ref(), &0x0506u16.to_ne_bytes());
     }
 
-    let all = area.finish().expect("finish area");
+    let all = area.freeze().expect("freeze area");
 
     let mut expected = Vec::new();
     expected.extend_from_slice(&[1]);

@@ -112,10 +112,10 @@ let mut area = ByteArea::new().unwrap();
 let mut writer = area.writer();
 let mut section = writer.reserve::<u8>(4).unwrap();
 section.copy_from_slice(b"test");
-let bytes = section.finish().unwrap();
+let bytes = section.freeze().unwrap();
 assert_eq!(bytes.as_ref(), b"test".as_ref());
 drop(writer);
-let all = area.finish().unwrap();
+let all = area.freeze().unwrap();
 assert_eq!(all.as_ref(), b"test".as_ref());
 ```
 

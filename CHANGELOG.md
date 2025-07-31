@@ -1,10 +1,10 @@
 # Changelog
 
 ## Unreleased
-- added `ByteArea` for staged file writes with `Section::finish()` to return `Bytes`
+- added `ByteArea` for staged file writes with `Section::freeze()` to return `Bytes`
 - `SectionWriter::reserve` now accepts a zerocopy type instead of an alignment constant
 - `ByteArea` reuses previous pages so allocations align only to the element type
-- `Section::finish` converts the writable mapping to read-only instead of remapping
+- `Section::freeze` converts the writable mapping to read-only instead of remapping
 - simplified `ByteArea` by introducing `SectionWriter` for mutable access without
   interior mutability
 - tie `Section` lifetime to `ByteArea` to prevent dangling sections
