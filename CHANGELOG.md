@@ -38,6 +38,7 @@
 - compile-time assertion that `ALIGN` is a power of two
 - added `reserve_total` to `ByteBuffer` for reserving absolute capacity
 - fixed potential UB in `Bytes::try_unwrap_owner` for custom owners
+- renamed `ByteArea::writer` to `sections` for clarity
 - prevent dangling `data` by dropping references before unwrapping the owner
 - refined `Bytes::try_unwrap_owner` to cast the data slice to a pointer only
   when the owner type matches

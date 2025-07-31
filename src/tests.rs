@@ -310,8 +310,8 @@ fn test_area_single_reserve() {
 
     let mut area = ByteArea::new().expect("area");
     {
-        let mut writer = area.writer();
-        let mut section = writer.reserve::<u8>(4).expect("reserve");
+        let mut sections = area.sections();
+        let mut section = sections.reserve::<u8>(4).expect("reserve");
         section.as_mut_slice().copy_from_slice(b"test");
         let bytes = section.freeze().expect("freeze section");
         assert_eq!(bytes.as_ref(), b"test");
@@ -328,14 +328,14 @@ fn test_area_multiple_reserves() {
 
     let mut area = ByteArea::new().expect("area");
     {
-        let mut writer = area.writer();
+        let mut sections = area.sections();
 
-        let mut a = writer.reserve::<u8>(5).expect("reserve");
+        let mut a = sections.reserve::<u8>(5).expect("reserve");
         a.as_mut_slice().copy_from_slice(b"first");
         let bytes_a = a.freeze().expect("freeze");
         assert_eq!(bytes_a.as_ref(), b"first");
 
-        let mut b = writer.reserve::<u8>(6).expect("reserve");
+        let mut b = sections.reserve::<u8>(6).expect("reserve");
         b.as_mut_slice().copy_from_slice(b"second");
         let bytes_b = b.freeze().expect("freeze");
         assert_eq!(bytes_b.as_ref(), b"second");
@@ -351,10 +351,10 @@ fn test_area_concurrent_sections() {
     use crate::area::ByteArea;
 
     let mut area = ByteArea::new().expect("area");
-    let mut writer = area.writer();
+    let mut sections = area.sections();
 
-    let mut a = writer.reserve::<u8>(5).expect("reserve a");
-    let mut b = writer.reserve::<u8>(6).expect("reserve b");
+    let mut a = sections.reserve::<u8>(5).expect("reserve a");
+    let mut b = sections.reserve::<u8>(6).expect("reserve b");
     a.as_mut_slice().copy_from_slice(b"first");
     b.as_mut_slice().copy_from_slice(b"second");
 
@@ -364,7 +364,7 @@ fn test_area_concurrent_sections() {
     assert_eq!(bytes_a.as_ref(), b"first");
     assert_eq!(bytes_b.as_ref(), b"second");
 
-    drop(writer);
+    drop(sections);
     let all = area.freeze().expect("freeze area");
     assert_eq!(all.as_ref(), b"firstsecond");
 }
@@ -383,8 +383,8 @@ fn test_area_typed() {
 
     let mut area = ByteArea::new().expect("area");
     let bytes = {
-        let mut writer = area.writer();
-        let mut section = writer.reserve::<Pair>(2).expect("reserve");
+        let mut sections = area.sections();
+        let mut section = sections.reserve::<Pair>(2).expect("reserve");
         section.as_mut_slice()[0] = Pair { a: 1, b: 2 };
         section.as_mut_slice()[1] = Pair { a: 3, b: 4 };
         section.freeze().expect("freeze")
@@ -410,8 +410,8 @@ fn test_area_persist() {
 
     let mut area = ByteArea::new().expect("area");
     {
-        let mut writer = area.writer();
-        let mut section = writer.reserve::<u8>(7).expect("reserve");
+        let mut sections = area.sections();
+        let mut section = sections.reserve::<u8>(7).expect("reserve");
         section.as_mut_slice().copy_from_slice(b"persist");
         section.freeze().expect("freeze section");
     }
@@ -428,19 +428,19 @@ fn test_area_alignment_padding() {
 
     let mut area = ByteArea::new().expect("area");
     {
-        let mut writer = area.writer();
+        let mut sections = area.sections();
 
-        let mut a = writer.reserve::<u8>(1).expect("reserve");
+        let mut a = sections.reserve::<u8>(1).expect("reserve");
         a.as_mut_slice()[0] = 1;
         let bytes_a = a.freeze().expect("freeze a");
         assert_eq!(bytes_a.as_ref(), &[1]);
 
-        let mut b = writer.reserve::<u32>(1).expect("reserve");
+        let mut b = sections.reserve::<u32>(1).expect("reserve");
         b.as_mut_slice()[0] = 0x01020304;
         let bytes_b = b.freeze().expect("freeze b");
         assert_eq!(bytes_b.as_ref(), &0x01020304u32.to_ne_bytes());
 
-        let mut c = writer.reserve::<u16>(1).expect("reserve");
+        let mut c = sections.reserve::<u16>(1).expect("reserve");
         c.as_mut_slice()[0] = 0x0506;
         let bytes_c = c.freeze().expect("freeze c");
         assert_eq!(bytes_c.as_ref(), &0x0506u16.to_ne_bytes());

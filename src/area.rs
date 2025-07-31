@@ -47,8 +47,8 @@ impl ByteArea {
         Ok(Self { file, len: 0 })
     }
 
-    /// Obtain a writer for reserving sections.
-    pub fn writer(&mut self) -> SectionWriter<'_> {
+    /// Obtain a handle for reserving sections.
+    pub fn sections(&mut self) -> SectionWriter<'_> {
         SectionWriter { area: self }
     }
 
