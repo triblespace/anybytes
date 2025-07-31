@@ -101,26 +101,29 @@ fn read_header(file: &std::fs::File) -> std::io::Result<anybytes::view::View<Hea
 To map only a portion of a file use the unsafe helper
 `Bytes::map_file_region(file, offset, len)`.
 
-### Byte Arena
+### Byte Area
 
-Use `ByteArena` to incrementally build immutable bytes on disk:
+Use `ByteArea` to incrementally build immutable bytes on disk:
 
 ```rust
-use anybytes::arena::ByteArena;
+use anybytes::area::ByteArea;
 
-let mut arena = ByteArena::new().unwrap();
-let mut buffer = arena.write::<u8>(4).unwrap();
-buffer.copy_from_slice(b"test");
-let bytes = buffer.finish().unwrap();
+let mut area = ByteArea::new().unwrap();
+let mut writer = area.writer();
+let mut section = writer.reserve::<u8>(4).unwrap();
+section.copy_from_slice(b"test");
+let bytes = section.finish().unwrap();
 assert_eq!(bytes.as_ref(), b"test".as_ref());
-let all = arena.finish().unwrap();
+drop(writer);
+let all = area.finish().unwrap();
 assert_eq!(all.as_ref(), b"test".as_ref());
 ```
 
-Call `arena.persist(path)` to keep the temporary file instead of mapping it.
+Call `area.persist(path)` to keep the temporary file instead of mapping it.
 
-The arena only aligns allocations to the element type and may share pages
-between adjacent buffers to minimize wasted space.
+The area only aligns allocations to the element type and may share pages
+between adjacent sections to minimize wasted space. Multiple sections may be
+active simultaneously; their byte ranges do not overlap.
 
 ## Features
 

@@ -1,15 +1,19 @@
 # Changelog
 
 ## Unreleased
-- added `ByteArena` for staged file writes with `Buffer::finish()` to return `Bytes`
-- `ByteArena::write` now accepts a zerocopy type instead of an alignment constant
-- `ByteArena` reuses previous pages so allocations align only to the element type
-- `Buffer::finish` converts the writable mapping to read-only instead of remapping
-- documented all fields in `ByteArena` and `Buffer`
-- documented ByteArena usage under advanced usage with proper heading
-- added `ByteArena::persist` to rename the temporary file
-- removed the old `ByteBuffer` type in favor of `ByteArena`
-- added tests covering `ByteArena` writes, typed buffers and persistence
+- added `ByteArea` for staged file writes with `Section::finish()` to return `Bytes`
+- `SectionWriter::reserve` now accepts a zerocopy type instead of an alignment constant
+- `ByteArea` reuses previous pages so allocations align only to the element type
+- `Section::finish` converts the writable mapping to read-only instead of remapping
+- simplified `ByteArea` by introducing `SectionWriter` for mutable access without
+  interior mutability
+- tie `Section` lifetime to `ByteArea` to prevent dangling sections
+- allow multiple `ByteArea` sections at once with non-overlapping byte ranges
+- documented all fields in `ByteArea`, `SectionWriter` and `Section`
+- documented ByteArea usage under advanced usage with proper heading
+- added `ByteArea::persist` to rename the temporary file
+- removed the old `ByteBuffer` type in favor of `ByteArea`
+- added tests covering `ByteArea` sections, typed reserves and persistence
 - added test verifying alignment padding between differently aligned writes
 - split Kani verification into `verify.sh` and streamline `preflight.sh`
 - clarify that `verify.sh` runs on a dedicated system and document avoiding async code
