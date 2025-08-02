@@ -32,6 +32,7 @@
 - documented safety rationale for `winnow` integration
 - implemented `Stream` directly for `Bytes` with a safe `iter_offsets` iterator
 - added `pop_back` and `pop_front` helpers and rewrote parser examples
+- added tests covering `pop_front` and `pop_back`
 - removed the Completed Work section from `INVENTORY.md` and documented its use
 - added `Bytes::try_unwrap_owner` to reclaim the owner when uniquely held
 - simplified `Bytes::try_unwrap_owner` implementation

@@ -104,6 +104,26 @@ fn test_slice_to_bytes_unrelated_slice() {
 }
 
 #[test]
+fn test_pop_front() {
+    let mut bytes = Bytes::from(b"abc".to_vec());
+    assert_eq!(bytes.pop_front(), Some(b'a'));
+    assert_eq!(bytes.as_ref(), b"bc");
+    assert_eq!(bytes.pop_front(), Some(b'b'));
+    assert_eq!(bytes.pop_front(), Some(b'c'));
+    assert_eq!(bytes.pop_front(), None);
+}
+
+#[test]
+fn test_pop_back() {
+    let mut bytes = Bytes::from(b"abc".to_vec());
+    assert_eq!(bytes.pop_back(), Some(b'c'));
+    assert_eq!(bytes.as_ref(), b"ab");
+    assert_eq!(bytes.pop_back(), Some(b'b'));
+    assert_eq!(bytes.pop_back(), Some(b'a'));
+    assert_eq!(bytes.pop_back(), None);
+}
+
+#[test]
 fn test_weakbytes_multiple_upgrades() {
     let bytes = Bytes::from(b"hello".to_vec());
     let weak = bytes.downgrade();
