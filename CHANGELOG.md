@@ -2,6 +2,7 @@
 
 ## Unreleased
 - added example combining Python bindings with winnow parsing
+- added Python example demonstrating structured parsing with winnow's `view`
 - added `ByteSource` support for `VecDeque<T>` when `zerocopy` is enabled and kept the deque as owner
 - added `ByteSource` support for `Cow<'static, T>` where `T: AsRef<[u8]>`
 - added `ByteArea` for staged file writes with `Section::freeze()` to return `Bytes`

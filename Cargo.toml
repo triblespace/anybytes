@@ -45,3 +45,11 @@ required-features = ["pyo3"]
 [[example]]
 name = "pybytes"
 required-features = ["pyo3"]
+
+[[example]]
+name = "python_winnow"
+required-features = ["pyo3", "winnow"]
+
+[[example]]
+name = "python_winnow_view"
+required-features = ["pyo3", "winnow", "zerocopy"]
