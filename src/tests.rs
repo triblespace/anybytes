@@ -175,6 +175,24 @@ fn test_pop_back() {
 }
 
 #[test]
+fn test_take_prefix() {
+    let mut bytes = Bytes::from(b"abcdef".to_vec());
+    let prefix = bytes.take_prefix(2).expect("prefix");
+    assert_eq!(prefix.as_ref(), b"ab");
+    assert_eq!(bytes.as_ref(), b"cdef");
+    assert!(bytes.take_prefix(10).is_none());
+}
+
+#[test]
+fn test_take_suffix() {
+    let mut bytes = Bytes::from(b"abcdef".to_vec());
+    let suffix = bytes.take_suffix(2).expect("suffix");
+    assert_eq!(suffix.as_ref(), b"ef");
+    assert_eq!(bytes.as_ref(), b"abcd");
+    assert!(bytes.take_suffix(10).is_none());
+}
+
+#[test]
 fn test_weakbytes_multiple_upgrades() {
     let bytes = Bytes::from(b"hello".to_vec());
     let weak = bytes.downgrade();
