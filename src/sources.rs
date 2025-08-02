@@ -10,8 +10,8 @@
 //!
 //! | Feature      | Implementations                                                   |
 //! | ------------ | ---------------------------------------------------------------- |
-//! | `zerocopy`   | `&'static [T]`, `Box<T>`, `Vec<T>` for `T: IntoBytes + Immutable` |
-//! | *(none)*     | `&'static [u8]`, `Box<[u8]>`, `Vec<u8>`, `String`, `&'static str`, `Cow<'static, T>` for `T: AsRef<[u8]>` |
+//! | `zerocopy`   | `&'static [T]`, `Box<T>`, `Vec<T>`, `VecDeque<T>` for `T: IntoBytes + Immutable` |
+//! | *(none)*     | `&'static [u8]`, `Box<[u8]>`, `Vec<u8>`, `VecDeque<u8>`, `String`, `&'static str`, `Cow<'static, T>` for `T: AsRef<[u8]>` |
 //! | `bytes`      | `bytes::Bytes`                                                   |
 //! | `ownedbytes` | `ownedbytes::OwnedBytes`                                         |
 //! | `mmap`       | `memmap2::Mmap` and `ByteOwner` for `memmap2::MmapRaw`           |
@@ -36,7 +36,7 @@
 //! # let _ = Bytes::from_source(MyData(vec![1, 2, 3]));
 //! ```
 
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::VecDeque};
 use zerocopy::Immutable;
 #[cfg(feature = "zerocopy")]
 use zerocopy::IntoBytes;
@@ -129,6 +129,53 @@ unsafe impl ByteSource for Vec<u8> {
     }
 
     fn get_owner(self) -> Self::Owner {
+        self
+    }
+}
+
+#[cfg(feature = "zerocopy")]
+unsafe impl<T> ByteSource for VecDeque<T>
+where
+    T: IntoBytes + Immutable + Sync + Send + 'static,
+{
+    type Owner = Self;
+
+    fn as_bytes(&self) -> &[u8] {
+        let (front, back) = self.as_slices();
+        assert!(
+            back.is_empty(),
+            "VecDeque is not contiguous; call make_contiguous before creating Bytes",
+        );
+        IntoBytes::as_bytes(front)
+    }
+
+    fn get_owner(self) -> Self::Owner {
+        assert!(
+            self.as_slices().1.is_empty(),
+            "VecDeque is not contiguous; call make_contiguous before creating Bytes",
+        );
+        self
+    }
+}
+
+#[cfg(not(feature = "zerocopy"))]
+unsafe impl ByteSource for VecDeque<u8> {
+    type Owner = Self;
+
+    fn as_bytes(&self) -> &[u8] {
+        let (front, back) = self.as_slices();
+        assert!(
+            back.is_empty(),
+            "VecDeque is not contiguous; call make_contiguous before creating Bytes",
+        );
+        front
+    }
+
+    fn get_owner(self) -> Self::Owner {
+        assert!(
+            self.as_slices().1.is_empty(),
+            "VecDeque is not contiguous; call make_contiguous before creating Bytes",
+        );
         self
     }
 }

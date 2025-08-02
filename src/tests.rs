@@ -104,6 +104,57 @@ fn test_slice_to_bytes_unrelated_slice() {
 }
 
 #[test]
+fn test_vecdeque_source() {
+    use std::collections::VecDeque;
+
+    let mut deque = VecDeque::new();
+    deque.extend([1u8, 2, 3, 4]);
+    deque.make_contiguous();
+    let bytes = Bytes::from_source(deque);
+    assert_eq!(bytes.as_ref(), &[1, 2, 3, 4]);
+    let owner = bytes
+        .downcast_to_owner::<VecDeque<u8>>()
+        .expect("downcast VecDeque owner");
+    assert_eq!(&*owner, &VecDeque::from([1u8, 2, 3, 4]));
+}
+
+#[cfg(feature = "zerocopy")]
+#[test]
+fn test_vecdeque_generic_source() {
+    use std::collections::VecDeque;
+
+    let mut deque = VecDeque::new();
+    deque.extend([1u16, 2, 3, 4]);
+    deque.make_contiguous();
+    let bytes = Bytes::from_source(deque);
+
+    let mut expected = Vec::new();
+    for n in [1u16, 2, 3, 4] {
+        expected.extend_from_slice(&n.to_ne_bytes());
+    }
+    assert_eq!(bytes.as_ref(), expected.as_slice());
+    let owner = bytes
+        .downcast_to_owner::<VecDeque<u16>>()
+        .expect("downcast VecDeque owner");
+    assert_eq!(&*owner, &VecDeque::from([1u16, 2, 3, 4]));
+}
+
+#[test]
+#[should_panic]
+fn test_vecdeque_noncontiguous_panics() {
+    use std::collections::VecDeque;
+
+    let mut deque: VecDeque<u8> = VecDeque::with_capacity(3);
+    deque.push_back(1);
+    deque.push_back(2);
+    deque.push_back(3);
+    let _ = deque.pop_front();
+    deque.push_back(4); // wraps around
+    assert!(!deque.as_slices().1.is_empty());
+    let _ = Bytes::from_source(deque);
+}
+
+#[test]
 fn test_pop_front() {
     let mut bytes = Bytes::from(b"abc".to_vec());
     assert_eq!(bytes.pop_front(), Some(b'a'));
