@@ -148,6 +148,7 @@ needs these libraries installed; otherwise disable the feature during testing.
 - [`examples/pybytes.rs`](examples/pybytes.rs) – demonstrates the `pyo3` feature using `PyBytes`
 - [`examples/from_python.rs`](examples/from_python.rs) – wrap a Python `bytes` object into `Bytes`
 - [`examples/python_winnow.rs`](examples/python_winnow.rs) – parse Python bytes with winnow
+- [`examples/python_winnow_view.rs`](examples/python_winnow_view.rs) – parse structured data from Python bytes using winnow's `view`
 
 ## Comparison
 

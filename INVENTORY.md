@@ -4,7 +4,7 @@
 - None at the moment.
 
 ## Desired Functionality
-- Python example using winnow::view to parse structured data.
+- Add Kani proofs for winnow view helpers.
 
 ## Discovered Issues
 - None at the moment.
