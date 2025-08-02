@@ -147,6 +147,7 @@ needs these libraries installed; otherwise disable the feature during testing.
 - [`examples/try_unwrap_owner.rs`](examples/try_unwrap_owner.rs) – reclaim the owner when uniquely referenced
 - [`examples/pybytes.rs`](examples/pybytes.rs) – demonstrates the `pyo3` feature using `PyBytes`
 - [`examples/from_python.rs`](examples/from_python.rs) – wrap a Python `bytes` object into `Bytes`
+- [`examples/python_winnow.rs`](examples/python_winnow.rs) – parse Python bytes with winnow
 
 ## Comparison
 

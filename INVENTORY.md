@@ -4,7 +4,7 @@
 - None at the moment.
 
 ## Desired Functionality
-- Example demonstrating Python + winnow parsing.
- 
+- Python example using winnow::view to parse structured data.
+
 ## Discovered Issues
 - None at the moment.
