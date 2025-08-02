@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- added `ByteSource` support for `Cow<'static, T>` where `T: AsRef<[u8]>`
 - added `ByteArea` for staged file writes with `Section::freeze()` to return `Bytes`
 - `SectionWriter::reserve` now accepts a zerocopy type instead of an alignment constant
 - `ByteArea` reuses previous pages so allocations align only to the element type

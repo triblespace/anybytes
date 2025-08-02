@@ -10,8 +10,8 @@
 //!
 //! | Feature      | Implementations                                                   |
 //! | ------------ | ---------------------------------------------------------------- |
-//! | `zerocopy`   | `&'static [T]`, `Box<T>` and `Vec<T>` for `T: IntoBytes + Immutable` |
-//! | *(none)*     | `&'static [u8]`, `Box<[u8]>`, `Vec<u8>`, `String`, `&'static str` |
+//! | `zerocopy`   | `&'static [T]`, `Box<T>`, `Vec<T>` for `T: IntoBytes + Immutable` |
+//! | *(none)*     | `&'static [u8]`, `Box<[u8]>`, `Vec<u8>`, `String`, `&'static str`, `Cow<'static, T>` for `T: AsRef<[u8]>` |
 //! | `bytes`      | `bytes::Bytes`                                                   |
 //! | `ownedbytes` | `ownedbytes::OwnedBytes`                                         |
 //! | `mmap`       | `memmap2::Mmap` and `ByteOwner` for `memmap2::MmapRaw`           |
@@ -145,41 +145,27 @@ unsafe impl ByteSource for String {
     }
 }
 
-#[cfg(feature = "zerocopy")]
-unsafe impl<T> ByteSource for Cow<'static, [T]>
-where
-    T: IntoBytes + Immutable + Sync + Send + Clone + 'static,
-{
-    type Owner = Self;
-
-    fn as_bytes(&self) -> &[u8] {
-        let slice: &[T] = self.as_ref();
-        IntoBytes::as_bytes(slice)
-    }
-
-    fn get_owner(self) -> Self::Owner {
-        self
-    }
-}
-
-#[cfg(not(feature = "zerocopy"))]
-unsafe impl ByteSource for Cow<'static, [u8]> {
-    type Owner = Self;
-
-    fn as_bytes(&self) -> &[u8] {
-        self.as_ref()
-    }
-
-    fn get_owner(self) -> Self::Owner {
-        self
-    }
-}
-
 unsafe impl ByteSource for &'static str {
     type Owner = Self;
 
     fn as_bytes(&self) -> &[u8] {
         (*self).as_bytes()
+    }
+
+    fn get_owner(self) -> Self::Owner {
+        self
+    }
+}
+
+unsafe impl<T> ByteSource for Cow<'static, T>
+where
+    T: ?Sized + ToOwned + AsRef<[u8]> + Sync + Send + 'static,
+    T::Owned: Sync + Send + 'static,
+{
+    type Owner = Self;
+
+    fn as_bytes(&self) -> &[u8] {
+        self.as_ref().as_ref()
     }
 
     fn get_owner(self) -> Self::Owner {
