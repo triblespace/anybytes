@@ -609,4 +609,51 @@ mod verification {
         let other: [u8; 4] = kani::any();
         assert!(bytes.slice_to_bytes(&other).is_none());
     }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_try_unwrap_owner_unique() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let bytes = Bytes::from_source(data.clone());
+        let recovered = bytes.try_unwrap_owner::<Vec<u8>>().expect("unwrap owner");
+        assert_eq!(recovered, data);
+    }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_try_unwrap_owner_shared() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let bytes = Bytes::from_source(data.clone());
+        let _clone = bytes.clone();
+        let result = bytes.try_unwrap_owner::<Vec<u8>>();
+        assert!(result.is_err());
+    }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_try_unwrap_owner_wrong_type() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let bytes = Bytes::from_source(data);
+        assert!(bytes.try_unwrap_owner::<String>().is_err());
+    }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_weakbytes_upgrade_some() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let bytes = Bytes::from_source(data.clone());
+        let weak = bytes.downgrade();
+        let upgraded = weak.upgrade().expect("upgrade");
+        assert_eq!(upgraded.as_ref(), data.as_slice());
+    }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_weakbytes_upgrade_none() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let bytes = Bytes::from_source(data);
+        let weak = bytes.downgrade();
+        drop(bytes);
+        assert!(weak.upgrade().is_none());
+    }
 }
