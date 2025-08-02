@@ -276,31 +276,22 @@ fn test_cow_u8_borrowed_source() {
     assert_eq!(bytes_borrowed.as_ref(), borrowed.as_ref());
 }
 
-#[cfg(feature = "zerocopy")]
 #[test]
-fn test_cow_zerocopy_owned_source() {
+fn test_cow_str_owned_source() {
     use std::borrow::Cow;
 
-    let owned: Cow<'static, [u32]> = Cow::Owned(vec![1, 2, 3, 4]);
+    let owned: Cow<'static, str> = Cow::Owned(String::from("abcd"));
     let bytes_owned = Bytes::from_source(owned.clone());
-    assert_eq!(
-        bytes_owned.as_ref(),
-        zerocopy::IntoBytes::as_bytes(owned.as_ref())
-    );
+    assert_eq!(bytes_owned.as_ref(), owned.as_bytes());
 }
 
-#[cfg(feature = "zerocopy")]
 #[test]
-fn test_cow_zerocopy_borrowed_source() {
+fn test_cow_str_borrowed_source() {
     use std::borrow::Cow;
 
-    static BORROWED: [u32; 2] = [5, 6];
-    let borrowed: Cow<'static, [u32]> = Cow::Borrowed(&BORROWED);
+    let borrowed: Cow<'static, str> = Cow::Borrowed("abcd");
     let bytes_borrowed = Bytes::from_source(borrowed.clone());
-    assert_eq!(
-        bytes_borrowed.as_ref(),
-        zerocopy::IntoBytes::as_bytes(borrowed.as_ref())
-    );
+    assert_eq!(bytes_borrowed.as_ref(), borrowed.as_bytes());
 }
 
 #[cfg(all(feature = "mmap", feature = "zerocopy"))]
