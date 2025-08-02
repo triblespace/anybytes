@@ -52,6 +52,7 @@
   and return the original value on failure
   in a dedicated AGENTS section
 - add tests for weak reference upgrade/downgrade and Kani proofs for view helpers
+- add Kani proofs covering `Bytes::try_unwrap_owner` and `WeakBytes` upgrade semantics
 - add examples for quick start and PyBytes usage
 - add example showing how to wrap Python `bytes` into `Bytes`
 - summarize built-in `ByteSource`s and show how to extend them
