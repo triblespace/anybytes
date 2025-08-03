@@ -19,6 +19,8 @@
 - removed the old `ByteBuffer` type in favor of `ByteArea`
 - added tests covering `ByteArea` sections, typed reserves and persistence
 - added test verifying alignment padding between differently aligned writes
+- added property tests generating random `ByteArea` sections and documented
+  multi-typed section layouts
 - split Kani verification into `verify.sh` and streamline `preflight.sh`
 - clarify that `verify.sh` runs on a dedicated system and document avoiding async code
 - install `rustfmt` and the Kani verifier automatically via `cargo install`
