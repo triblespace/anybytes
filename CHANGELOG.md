@@ -96,6 +96,7 @@
   removed the corresponding task from the inventory
 - implemented `bytes::Buf` for `Bytes` and `From<Bytes>` for `bytes::Bytes` for
   seamless integration with Tokio and other libraries
+- implemented `ExactSizeIterator` and `FusedIterator` for `BytesIterOffsets`
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`
