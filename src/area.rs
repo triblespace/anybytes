@@ -13,6 +13,38 @@
 //! lifetime. Multiple sections may coexist; their byte ranges do not overlap.
 //! Freezing a section via [`Section::freeze`] remaps its range as immutable and
 //! returns [`Bytes`].
+//!
+//! # Examples
+//!
+//! ```
+//! # #[cfg(all(feature = "mmap", feature = "zerocopy"))]
+//! # {
+//! use anybytes::area::ByteArea;
+//!
+//! let mut area = ByteArea::new().unwrap();
+//! let mut sections = area.sections();
+//!
+//! let mut a = sections.reserve::<u8>(1).unwrap();
+//! a.as_mut_slice()[0] = 1;
+//!
+//! let mut b = sections.reserve::<u32>(1).unwrap();
+//! b.as_mut_slice()[0] = 2;
+//!
+//! let bytes_a = a.freeze().unwrap();
+//! let bytes_b = b.freeze().unwrap();
+//! drop(sections);
+//! let all = area.freeze().unwrap();
+//!
+//! assert_eq!(bytes_a.as_ref(), &[1]);
+//! assert_eq!(bytes_b.as_ref(), &2u32.to_ne_bytes());
+//!
+//! let mut expected = Vec::new();
+//! expected.extend_from_slice(&[1]);
+//! expected.extend_from_slice(&[0; 3]);
+//! expected.extend_from_slice(&2u32.to_ne_bytes());
+//! assert_eq!(all.as_ref(), expected.as_slice());
+//! # }
+//! ```
 
 use std::io::{self, Seek, SeekFrom};
 use std::marker::PhantomData;
