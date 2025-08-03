@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- added example demonstrating `ByteArea` with multiple typed sections, concurrent mutations, and freezing or persisting the area
 - added example combining Python bindings with winnow parsing
 - added Python example demonstrating structured parsing with winnow's `view`
 - added `ByteSource` support for `VecDeque<T>` when `zerocopy` is enabled and kept the deque as owner
