@@ -33,7 +33,20 @@ impl Iterator for BytesIterOffsets {
         self.offset += 1;
         Some((offset, token))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.bytes.as_slice().len();
+        (len, Some(len))
+    }
 }
+
+impl ExactSizeIterator for BytesIterOffsets {
+    fn len(&self) -> usize {
+        self.bytes.as_slice().len()
+    }
+}
+
+impl std::iter::FusedIterator for BytesIterOffsets {}
 
 impl SliceLen for Bytes {
     #[inline(always)]

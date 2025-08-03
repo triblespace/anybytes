@@ -281,6 +281,31 @@ fn test_winnow_stream_take() {
     assert_eq!(input.as_bytes(), [3u8, 4].as_ref());
 }
 
+#[cfg(feature = "winnow")]
+#[test]
+fn test_iter_offsets_traits() {
+    use std::iter::{ExactSizeIterator, FusedIterator};
+    use winnow::stream::Stream;
+
+    fn assert_traits<I: ExactSizeIterator + FusedIterator>(iter: I) -> I {
+        iter
+    }
+
+    let bytes = Bytes::from(vec![1u8, 2, 3, 4]);
+    let mut iter = assert_traits(Stream::iter_offsets(&bytes));
+    assert_eq!(iter.len(), 4);
+    assert_eq!(iter.size_hint(), (4, Some(4)));
+
+    for (i, (offset, byte)) in (&mut iter).enumerate() {
+        assert_eq!(offset, i);
+        assert_eq!(byte, bytes.as_ref()[i]);
+    }
+
+    assert_eq!(iter.len(), 0);
+    assert_eq!(iter.next(), None);
+    assert_eq!(iter.next(), None);
+}
+
 #[cfg(all(feature = "winnow", feature = "zerocopy"))]
 #[test]
 fn test_winnow_view_parser() {
