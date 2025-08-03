@@ -125,6 +125,10 @@ The area only aligns allocations to the element type and may share pages
 between adjacent sections to minimize wasted space. Multiple sections may be
 active simultaneously; their byte ranges do not overlap.
 
+See [`examples/byte_area.rs`](examples/byte_area.rs) for a complete example
+that reserves different typed sections, mutates them simultaneously, and then
+either freezes the area into `Bytes` or persists it to disk.
+
 ## Features
 
 By default the crate enables the `mmap` and `zerocopy` features.
@@ -149,6 +153,7 @@ needs these libraries installed; otherwise disable the feature during testing.
 - [`examples/from_python.rs`](examples/from_python.rs) – wrap a Python `bytes` object into `Bytes`
 - [`examples/python_winnow.rs`](examples/python_winnow.rs) – parse Python bytes with winnow
 - [`examples/python_winnow_view.rs`](examples/python_winnow_view.rs) – parse structured data from Python bytes using winnow's `view`
+- [`examples/byte_area.rs`](examples/byte_area.rs) – reserve and mutate multiple typed sections, then either freeze the area into `Bytes` or persist it to disk
 
 ## Comparison
 
