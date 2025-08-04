@@ -13,12 +13,12 @@ use crate::Bytes;
 
 /// Python wrapper around [`Bytes`].
 #[pyclass(name = "Bytes")]
-pub struct PyBytes {
+pub struct PyAnyBytes {
     bytes: Bytes,
 }
 
 #[pymethods]
-impl PyBytes {
+impl PyAnyBytes {
     /// Exposes the bytes to Python's buffer protocol.
     ///
     /// # Safety
@@ -45,7 +45,7 @@ impl PyBytes {
     }
 }
 
-impl PyBytes {
+impl PyAnyBytes {
     /// Wrap a [`Bytes`] instance for Python exposure.
     pub fn new(bytes: Bytes) -> Self {
         Self { bytes }
