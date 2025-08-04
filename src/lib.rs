@@ -21,7 +21,7 @@ pub mod view;
 
 #[cfg(feature = "pyo3")]
 /// Python bindings for [`Bytes`].
-pub mod pybytes;
+pub mod pyanybytes;
 
 #[cfg(feature = "winnow")]
 /// Integration with the `winnow` parser library.
@@ -37,7 +37,7 @@ pub use crate::bytes::ByteSource;
 pub use crate::bytes::Bytes;
 pub use crate::bytes::WeakBytes;
 #[cfg(feature = "pyo3")]
-pub use crate::pybytes::PyBytes;
+pub use crate::pyanybytes::PyAnyBytes;
 #[cfg(feature = "zerocopy")]
 pub use crate::view::View;
 

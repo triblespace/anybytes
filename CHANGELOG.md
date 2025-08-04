@@ -60,7 +60,7 @@
   in a dedicated AGENTS section
 - add tests for weak reference upgrade/downgrade and Kani proofs for view helpers
 - add Kani proofs covering `Bytes::try_unwrap_owner` and `WeakBytes` upgrade semantics
-- add examples for quick start and PyBytes usage
+- add examples for quick start and PyAnyBytes usage
 - add example showing how to wrap Python `bytes` into `Bytes`
 - summarize built-in `ByteSource`s and show how to extend them
 - added tests verifying `WeakView` upgrade and drop semantics
@@ -100,6 +100,9 @@
 - implemented `bytes::Buf` for `Bytes` and `From<Bytes>` for `bytes::Bytes` for
   seamless integration with Tokio and other libraries
 - implemented `ExactSizeIterator` and `FusedIterator` for `BytesIterOffsets`
+- added test exposing `PyAnyBytes` as a read-only `memoryview`
+- renamed `PyBytes` wrapper to `PyAnyBytes` to avoid confusion
+- renamed `py_anybytes` module to `pyanybytes` for consistency
 
 ## 0.19.3 - 2025-05-30
 - implemented `Error` for `ViewError`

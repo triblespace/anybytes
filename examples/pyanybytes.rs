@@ -1,10 +1,10 @@
-use anybytes::{Bytes, PyBytes};
+use anybytes::{Bytes, PyAnyBytes};
 use pyo3::prelude::*;
 
 fn main() -> PyResult<()> {
     Python::with_gil(|py| {
         let bytes = Bytes::from(vec![1u8, 2, 3, 4]);
-        let wrapped = Py::new(py, PyBytes::new(bytes))?;
+        let wrapped = Py::new(py, PyAnyBytes::new(bytes))?;
 
         let builtins = PyModule::import(py, "builtins")?;
         let memoryview = builtins.getattr("memoryview")?.call1((wrapped.bind(py),))?;

@@ -43,7 +43,7 @@ name = "from_python"
 required-features = ["pyo3"]
 
 [[example]]
-name = "pybytes"
+name = "pyanybytes"
 required-features = ["pyo3"]
 
 [[example]]

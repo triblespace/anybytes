@@ -560,3 +560,33 @@ fn test_area_alignment_padding() {
     expected.extend_from_slice(&0x0506u16.to_ne_bytes());
     assert_eq!(all.as_ref(), expected.as_slice());
 }
+
+#[cfg(feature = "pyo3")]
+#[test]
+fn test_pyanybytes_memoryview() {
+    use crate::{Bytes, PyAnyBytes};
+    use pyo3::types::{PyAnyMethods, PyMemoryView};
+    use pyo3::{Py, Python};
+
+    pyo3::prepare_freethreaded_python();
+    Python::with_gil(|py| {
+        let data = b"memoryview";
+        let bytes = PyAnyBytes::new(Bytes::from(data.to_vec()));
+        let py_obj = Py::new(py, bytes).expect("PyAnyBytes");
+        let view = PyMemoryView::from(py_obj.bind(py).as_any()).expect("memoryview");
+
+        let mv_bytes: Vec<u8> = view
+            .call_method0("tobytes")
+            .expect("tobytes")
+            .extract()
+            .expect("extract bytes");
+        assert_eq!(mv_bytes.as_slice(), data);
+
+        let readonly: bool = view
+            .getattr("readonly")
+            .expect("readonly attr")
+            .extract()
+            .expect("extract bool");
+        assert!(readonly);
+    });
+}

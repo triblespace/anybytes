@@ -138,7 +138,7 @@ Other optional features provide additional integrations:
 - `ownedbytes` &ndash; adds compatibility with [`ownedbytes`](https://crates.io/crates/ownedbytes) and implements its `StableDeref` trait.
 - `mmap` &ndash; enables memory-mapped file handling via the `memmap2` crate.
 - `zerocopy` &ndash; exposes the [`view`](src/view.rs) module for typed zero-copy access and allows using `zerocopy` types as sources.
-- `pyo3` &ndash; builds the [`pybytes`](src/pybytes.rs) module to provide Python bindings for `Bytes`.
+- `pyo3` &ndash; builds the [`pyanybytes`](src/pyanybytes.rs) module to provide Python bindings for `Bytes`.
 - `winnow` &ndash; implements the [`Stream`](https://docs.rs/winnow/) traits for `Bytes` and offers parsers (`view`, `view_elems(count)`) that return typed `View`s.
 
 Enabling the `pyo3` feature requires the Python development headers and libraries
@@ -149,7 +149,7 @@ needs these libraries installed; otherwise disable the feature during testing.
 
 - [`examples/quick_start.rs`](examples/quick_start.rs) – the quick start shown above
 - [`examples/try_unwrap_owner.rs`](examples/try_unwrap_owner.rs) – reclaim the owner when uniquely referenced
-- [`examples/pybytes.rs`](examples/pybytes.rs) – demonstrates the `pyo3` feature using `PyBytes`
+- [`examples/pyanybytes.rs`](examples/pyanybytes.rs) – demonstrates the `pyo3` feature using `PyAnyBytes`
 - [`examples/from_python.rs`](examples/from_python.rs) – wrap a Python `bytes` object into `Bytes`
 - [`examples/python_winnow.rs`](examples/python_winnow.rs) – parse Python bytes with winnow
 - [`examples/python_winnow_view.rs`](examples/python_winnow_view.rs) – parse structured data from Python bytes using winnow's `view`
@@ -184,7 +184,7 @@ development iterations.
 - [`ByteSource`](src/bytes.rs) &ndash; trait for objects that can provide bytes.
 - [`ByteOwner`](src/bytes.rs) &ndash; keeps backing storage alive.
 - [`view` module](src/view.rs) &ndash; typed zero-copy access to bytes.
-- [`pybytes` module](src/pybytes.rs) &ndash; Python bindings.
+- [`pyanybytes` module](src/pyanybytes.rs) &ndash; Python bindings.
 
 ## Acknowledgements
 This library started as a fork of the minibyte library in facebooks [sapling scm](https://github.com/facebook/sapling).
