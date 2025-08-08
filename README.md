@@ -103,7 +103,8 @@ To map only a portion of a file use the unsafe helper
 
 ### Byte Area
 
-Use `ByteArea` to incrementally build immutable bytes on disk:
+Use `ByteArea` to incrementally build immutable bytes on disk; each section can
+yield a handle that reconstructs its range after the area is frozen:
 
 ```rust
 use anybytes::area::ByteArea;
@@ -112,11 +113,12 @@ let mut area = ByteArea::new().unwrap();
 let mut sections = area.sections();
 let mut section = sections.reserve::<u8>(4).unwrap();
 section.copy_from_slice(b"test");
+let handle = section.handle();
 let bytes = section.freeze().unwrap();
-assert_eq!(bytes.as_ref(), b"test".as_ref());
 drop(sections);
 let all = area.freeze().unwrap();
-assert_eq!(all.as_ref(), b"test".as_ref());
+assert_eq!(handle.bytes(&all).as_ref(), bytes.as_ref());
+assert_eq!(handle.view(&all).unwrap().as_ref(), b"test".as_ref());
 ```
 
 Call `area.persist(path)` to keep the temporary file instead of mapping it.
