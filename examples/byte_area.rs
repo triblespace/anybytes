@@ -12,6 +12,10 @@ fn main() -> std::io::Result<()> {
     raw.as_mut_slice().copy_from_slice(b"test");
     nums.as_mut_slice().copy_from_slice(&[1, 2]);
 
+    // Store handles so we can later extract the sections from the frozen area.
+    let handle_raw = raw.handle();
+    let handle_nums = nums.handle();
+
     // Freeze the sections into immutable `Bytes`.
     let frozen_raw: Bytes = raw.freeze()?;
     let frozen_nums: Bytes = nums.freeze()?;
@@ -25,8 +29,8 @@ fn main() -> std::io::Result<()> {
     if memory_or_file {
         // Freeze the whole area into immutable `Bytes`.
         let all: Bytes = area.freeze()?;
-        assert_eq!(&all[..4], b"test");
-        assert_eq!(all.slice(4..).view::<[u32]>().unwrap().as_ref(), &[1, 2]);
+        assert_eq!(handle_raw.bytes(&all).as_ref(), frozen_raw.as_ref());
+        assert_eq!(handle_nums.view(&all).unwrap().as_ref(), &[1, 2]);
     } else {
         // Persist the temporary file.
         let dir = tempdir()?;

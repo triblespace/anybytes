@@ -73,3 +73,27 @@ proptest! {
         prop_assert_eq!(all.as_ref(), expected.as_slice());
     }
 }
+
+#[test]
+fn handles_reconstruct_sections() {
+    let mut area = ByteArea::new().expect("area");
+    let mut sections = area.sections();
+
+    let mut a = sections.reserve::<u8>(1).expect("reserve u8");
+    a.as_mut_slice()[0] = 1;
+    let handle_a = a.handle();
+    let bytes_a = a.freeze().expect("freeze a");
+
+    let mut b = sections.reserve::<u32>(1).expect("reserve u32");
+    b.as_mut_slice()[0] = 2;
+    let handle_b = b.handle();
+    let bytes_b = b.freeze().expect("freeze b");
+
+    drop(sections);
+    let all = area.freeze().expect("freeze area");
+
+    assert_eq!(handle_a.bytes(&all).as_ref(), bytes_a.as_ref());
+    assert_eq!(handle_b.bytes(&all).as_ref(), bytes_b.as_ref());
+    assert_eq!(handle_a.view(&all).unwrap().as_ref(), &[1]);
+    assert_eq!(handle_b.view(&all).unwrap().as_ref(), &[2]);
+}

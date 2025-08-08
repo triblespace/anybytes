@@ -26,17 +26,19 @@
 //!
 //! let mut a = sections.reserve::<u8>(1).unwrap();
 //! a.as_mut_slice()[0] = 1;
+//! let handle_a = a.handle();
 //!
 //! let mut b = sections.reserve::<u32>(1).unwrap();
 //! b.as_mut_slice()[0] = 2;
+//! let handle_b = b.handle();
 //!
 //! let bytes_a = a.freeze().unwrap();
 //! let bytes_b = b.freeze().unwrap();
 //! drop(sections);
 //! let all = area.freeze().unwrap();
 //!
-//! assert_eq!(bytes_a.as_ref(), &[1]);
-//! assert_eq!(bytes_b.as_ref(), &2u32.to_ne_bytes());
+//! assert_eq!(handle_a.bytes(&all).as_ref(), &[1]);
+//! assert_eq!(handle_b.bytes(&all).as_ref(), &2u32.to_ne_bytes());
 //!
 //! let mut expected = Vec::new();
 //! expected.extend_from_slice(&[1]);
@@ -57,6 +59,9 @@ use crate::Bytes;
 
 #[cfg(feature = "zerocopy")]
 use zerocopy::{FromBytes, Immutable};
+
+#[cfg(feature = "zerocopy")]
+use crate::view::{View, ViewError};
 
 /// Alignment helper.
 fn align_up(val: usize, align: usize) -> usize {
@@ -135,6 +140,7 @@ impl<'area> SectionWriter<'area> {
         Ok(Section {
             mmap,
             offset,
+            start,
             elems,
             _marker: PhantomData,
         })
@@ -148,6 +154,8 @@ pub struct Section<'arena, T> {
     mmap: memmap2::MmapMut,
     /// Offset from the beginning of `mmap` to the start of the buffer.
     offset: usize,
+    /// Absolute start offset within the [`ByteArea`] in bytes.
+    start: usize,
     /// Number of elements in the buffer.
     elems: usize,
     /// Marker tying the section to the area and element type.
@@ -175,6 +183,15 @@ where
         // unmapping and remapping the region.
         let map = self.mmap.make_read_only()?;
         Ok(Bytes::from_source(map).slice(offset..offset + len_bytes))
+    }
+
+    /// Return a handle that can reconstruct this section from a frozen [`ByteArea`].
+    pub fn handle(&self) -> SectionHandle<T> {
+        SectionHandle {
+            offset: self.start,
+            len: self.elems * core::mem::size_of::<T>(),
+            _type: PhantomData,
+        }
     }
 }
 
@@ -219,5 +236,31 @@ where
 {
     fn as_mut(&mut self) -> &mut [T] {
         self
+    }
+}
+
+/// Handle referencing a [`Section`] within a frozen [`ByteArea`].
+#[derive(Clone, Copy, Debug)]
+pub struct SectionHandle<T> {
+    /// Absolute byte offset from the start of the area.
+    pub offset: usize,
+    /// Length of the section in bytes.
+    pub len: usize,
+    /// Marker for the element type stored in the section.
+    _type: PhantomData<T>,
+}
+
+impl<T> SectionHandle<T>
+where
+    T: FromBytes + Immutable,
+{
+    /// Extract the raw bytes for this section from `area`.
+    pub fn bytes<'a>(&self, area: &'a Bytes) -> Bytes {
+        area.slice(self.offset..self.offset + self.len)
+    }
+
+    /// Interpret the section as a typed [`View`].
+    pub fn view(&self, area: &Bytes) -> Result<View<[T]>, ViewError> {
+        self.bytes(area).view::<[T]>()
     }
 }
