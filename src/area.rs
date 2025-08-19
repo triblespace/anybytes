@@ -241,6 +241,11 @@ where
 
 /// Handle referencing a [`Section`] within a frozen [`ByteArea`].
 #[derive(Clone, Copy, Debug)]
+#[repr(C)]
+#[cfg_attr(
+    feature = "zerocopy",
+    derive(zerocopy::FromBytes, zerocopy::KnownLayout, zerocopy::Immutable,)
+)]
 pub struct SectionHandle<T> {
     /// Absolute byte offset from the start of the area.
     pub offset: usize,

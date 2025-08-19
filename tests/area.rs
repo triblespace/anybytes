@@ -97,3 +97,29 @@ fn handles_reconstruct_sections() {
     assert_eq!(handle_a.view(&all).unwrap().as_ref(), &[1]);
     assert_eq!(handle_b.view(&all).unwrap().as_ref(), &[2]);
 }
+
+#[test]
+fn handles_can_be_stored_in_sections() {
+    use anybytes::area::SectionHandle;
+
+    let mut area = ByteArea::new().expect("area");
+    let mut sections = area.sections();
+
+    let mut value = sections.reserve::<u8>(1).expect("reserve value");
+    value.as_mut_slice()[0] = 3;
+    let handle_value = value.handle();
+    value.freeze().expect("freeze value");
+
+    let mut handles = sections
+        .reserve::<SectionHandle<u8>>(1)
+        .expect("reserve handles");
+    handles.as_mut_slice()[0] = handle_value;
+    let handle_handles = handles.handle();
+    handles.freeze().expect("freeze handles");
+
+    drop(sections);
+    let all = area.freeze().expect("freeze area");
+
+    let stored_handle = handle_handles.view(&all).expect("view handles").as_ref()[0];
+    assert_eq!(stored_handle.view(&all).unwrap().as_ref(), &[3]);
+}
