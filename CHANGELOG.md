@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- derived zerocopy traits for `SectionHandle` to allow storing handles in `ByteArea` sections
 - added example demonstrating `ByteArea` with multiple typed sections, concurrent mutations, and freezing or persisting the area
 - added example combining Python bindings with winnow parsing
 - added Python example demonstrating structured parsing with winnow's `view`
