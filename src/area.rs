@@ -176,7 +176,9 @@ where
 
     /// Freeze the section and return immutable [`Bytes`].
     pub fn freeze(self) -> io::Result<Bytes> {
-        self.mmap.flush()?;
+        if self.mmap.len() > 0 {
+            self.mmap.flush()?;
+        }
         let len_bytes = self.elems * core::mem::size_of::<T>();
         let offset = self.offset;
         // Convert the writable mapping into a read-only view instead of
