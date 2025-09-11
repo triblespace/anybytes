@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- avoid flushing empty memory maps in `Section::freeze` to prevent macOS errors
 - derived zerocopy traits for `SectionHandle` to allow storing handles in `ByteArea` sections
 - added example demonstrating `ByteArea` with multiple typed sections, concurrent mutations, and freezing or persisting the area
 - added example combining Python bindings with winnow parsing
