@@ -656,4 +656,32 @@ mod verification {
         drop(bytes);
         assert!(weak.upgrade().is_none());
     }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_downcast_to_owner_preserves_data() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        kani::assume(data.len() <= 16);
+
+        let bytes = Bytes::from_source(data.clone());
+
+        // Invariant: when the owner really is a Vec<u8>, downcasting the Bytes
+        // owner should succeed and recover the same Arc<Vec<u8>> that backs the
+        // original allocation.  This ensures Bytes keeps the concrete owner
+        // type intact through cloning and slicing operations.
+        let arc_vec = bytes
+            .clone()
+            .downcast_to_owner::<Vec<u8>>()
+            .expect("downcast to Vec<u8>");
+        assert_eq!(&*arc_vec, &data);
+
+        // Invariant: attempting to downcast to the wrong owner type must fail
+        // without mutating the Bytes value.  The returned Bytes should still
+        // expose the same data slice so callers can continue using it.
+        let result = bytes.downcast_to_owner::<String>();
+        let Err(returned) = result else {
+            panic!("downcast to String should fail");
+        };
+        assert_eq!(returned.as_ref(), data.as_slice());
+    }
 }
