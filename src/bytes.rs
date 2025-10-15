@@ -592,6 +592,40 @@ mod verification {
 
     #[kani::proof]
     #[kani::unwind(16)]
+    pub fn check_pop_front_behaviour() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let mut bytes = Bytes::from_source(data.clone());
+        let snapshot = bytes.clone();
+
+        if let Some((expected, remainder)) = data.split_first() {
+            let popped = bytes.pop_front().expect("non-empty slice");
+            assert_eq!(popped, *expected);
+            assert_eq!(bytes.as_ref(), remainder);
+        } else {
+            assert!(bytes.pop_front().is_none());
+            assert_eq!(bytes.as_ref(), snapshot.as_ref());
+        }
+    }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_pop_back_behaviour() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let mut bytes = Bytes::from_source(data.clone());
+        let snapshot = bytes.clone();
+
+        if let Some((expected, remainder)) = data.split_last() {
+            let popped = bytes.pop_back().expect("non-empty slice");
+            assert_eq!(popped, *expected);
+            assert_eq!(bytes.as_ref(), remainder);
+        } else {
+            assert!(bytes.pop_back().is_none());
+            assert_eq!(bytes.as_ref(), snapshot.as_ref());
+        }
+    }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
     pub fn check_slice_to_bytes_ok() {
         let data: Vec<u8> = Vec::bounded_any::<16>();
         kani::assume(data.len() >= 8);

@@ -2,6 +2,7 @@
 
 ## Unreleased
 - add Kani proof checking `Bytes::downcast_to_owner` for matching and mismatched owners
+- added Kani verification harnesses for `Bytes::pop_front` and `Bytes::pop_back`
 - avoid flushing empty memory maps in `Section::freeze` to prevent macOS errors
 - derived zerocopy traits for `SectionHandle` to allow storing handles in `ByteArea` sections
 - added example demonstrating `ByteArea` with multiple typed sections, concurrent mutations, and freezing or persisting the area
