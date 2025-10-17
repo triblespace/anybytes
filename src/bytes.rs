@@ -718,4 +718,43 @@ mod verification {
         };
         assert_eq!(returned.as_ref(), data.as_slice());
     }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_is_subslice_accepts_ranges() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let bytes = Bytes::from_source(data.clone());
+
+        let start: usize = kani::any();
+        let end: usize = kani::any();
+        kani::assume(start <= end);
+        kani::assume(end <= data.len());
+
+        let slice = &bytes.as_ref()[start..end];
+        assert!(is_subslice(bytes.as_ref(), slice));
+    }
+
+    #[kani::proof]
+    #[kani::unwind(16)]
+    pub fn check_is_subslice_rejects_disjoint_ranges() {
+        let data: Vec<u8> = Vec::bounded_any::<16>();
+        let other: Vec<u8> = Vec::bounded_any::<8>();
+
+        let base_len = data.len();
+        kani::assume(base_len > 0);
+        let base_ptr = data.as_ptr();
+
+        let other_len = other.len();
+        kani::assume(other_len > 0);
+        let other_ptr = other.as_ptr();
+
+        let base_start = base_ptr as usize;
+        let base_end = base_start + base_len;
+        let other_start = other_ptr as usize;
+        let other_end = other_start + other_len;
+        kani::assume(other_end <= base_start || other_start >= base_end);
+
+        let bytes = Bytes::from_source(data);
+        assert!(!is_subslice(bytes.as_ref(), other.as_slice()));
+    }
 }

@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- added proptest coverage for prefix/suffix invariants and introduced a fuzz target for mutating `Bytes` operations
+- extended `verify.sh` to install cargo-fuzz and execute deterministic fuzz runs alongside Kani proofs
+- added Kani proofs ensuring `is_subslice` accepts only slices from the original allocation
 - add Kani proof checking `Bytes::downcast_to_owner` for matching and mismatched owners
 - added Kani verification harnesses for `Bytes::pop_front` and `Bytes::pop_back`
 - avoid flushing empty memory maps in `Section::freeze` to prevent macOS errors

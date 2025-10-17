@@ -26,6 +26,35 @@ proptest! {
         prop_assert_eq!(&b[..], &a[..b.len()]);
         prop_assert!(b.is_empty() || a.as_ptr() == b.as_ptr());
     }
+
+    #[test]
+    fn test_take_prefix_matches_split(data in proptest::collection::vec(any::<u8>(), 0..64)) {
+        for len in 0..=data.len() {
+            let mut bytes = Bytes::from(data.clone());
+            let prefix = bytes.take_prefix(len).expect("prefix within bounds");
+            prop_assert_eq!(prefix.as_ref(), &data[..len]);
+            prop_assert_eq!(bytes.as_ref(), &data[len..]);
+        }
+
+        let mut bytes = Bytes::from(data.clone());
+        prop_assert!(bytes.take_prefix(data.len() + 1).is_none());
+        prop_assert_eq!(bytes.as_ref(), data.as_slice());
+    }
+
+    #[test]
+    fn test_take_suffix_matches_split(data in proptest::collection::vec(any::<u8>(), 0..64)) {
+        for len in 0..=data.len() {
+            let mut bytes = Bytes::from(data.clone());
+            let suffix = bytes.take_suffix(len).expect("suffix within bounds");
+            let split = data.len() - len;
+            prop_assert_eq!(suffix.as_ref(), &data[split..]);
+            prop_assert_eq!(bytes.as_ref(), &data[..split]);
+        }
+
+        let mut bytes = Bytes::from(data.clone());
+        prop_assert!(bytes.take_suffix(data.len() + 1).is_none());
+        prop_assert_eq!(bytes.as_ref(), data.as_slice());
+    }
 }
 
 #[test]

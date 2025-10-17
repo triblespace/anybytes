@@ -1,0 +1,21 @@
+[package]
+name = "anybytes-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+anybytes = { path = ".." }
+
+[dev-dependencies]
+arbitrary = { version = "1", features = ["derive"] }
+
+[[bin]]
+name = "bytes_mut_ops"
+path = "fuzz_targets/bytes_mut_ops.rs"
+test = false
+doc = false
