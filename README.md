@@ -175,10 +175,17 @@ Run `./scripts/preflight.sh` from the repository root before committing. The
 script formats the code and executes all tests using Python 3.12 for the `pyo3`
 feature.
 
-Kani proofs are executed separately with `./scripts/verify.sh`, which should be
-run on a dedicated system. The script will install the Kani verifier
-automatically. Verification can take a long time and isn't needed for quick
-development iterations.
+Kani proofs and deterministic fuzz smoke tests are executed with
+`./scripts/verify.sh`, which should be run on a dedicated system. The script
+installs the Kani verifier, `cargo-fuzz`, and the nightly toolchain before
+running `cargo kani --workspace --all-features` followed by a bounded
+`cargo +nightly fuzz run`. Override the fuzz target or arguments by setting
+`FUZZ_TARGET` or `FUZZ_ARGS` in the environment. Verification can take a long
+time and isn't needed for quick development iterations.
+
+For exploratory fuzzing use `cargo fuzz run bytes_mut_ops`. The fuzz target
+mirrors a simple vector model to ensure helpers like `take_prefix` and
+`pop_front` remain consistent when exercised by randomized sequences.
 
 ## Glossary
 
