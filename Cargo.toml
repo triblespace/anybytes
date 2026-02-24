@@ -1,6 +1,6 @@
 [package]
 name = "anybytes"
-version = "0.20.0"
+version = "0.20.1"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/triblespace/anybytes"
@@ -15,6 +15,7 @@ page_size = "0.6"
 zerocopy = { version = "0.8.26", optional = true, features = ["derive"] }
 pyo3 = { version = "0.25.1", optional = true }
 winnow = { version = "0.7.12", optional = true }
+burn-tensor = { version = "0.20.1", optional = true, default-features = false }
 
 [dev-dependencies]
 proptest = "1.7"
@@ -28,6 +29,7 @@ mmap = ["dep:memmap2"]
 zerocopy = ["dep:zerocopy"]
 pyo3 = ["dep:pyo3"]
 winnow = ["dep:winnow"]
+burn = ["dep:burn-tensor", "bytes"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }

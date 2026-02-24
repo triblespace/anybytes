@@ -14,6 +14,7 @@
 //! | *(none)*     | `&'static [u8]`, `Box<[u8]>`, `Vec<u8>`, `VecDeque<u8>`, `String`, `&'static str`, `Cow<'static, T>` for `T: AsRef<[u8]>` |
 //! | `bytes`      | `bytes::Bytes`                                                   |
 //! | `ownedbytes` | `ownedbytes::OwnedBytes`                                         |
+//! | `burn`       | `burn_tensor::Bytes`                                             |
 //! | `mmap`       | `memmap2::Mmap` and `ByteOwner` for `memmap2::MmapRaw`           |
 //! | `pyo3`       | `pyo3::Bound<'_, PyBytes>` and `ByteOwner` for `Py<PyBytes>`     |
 //!
@@ -243,6 +244,29 @@ unsafe impl ByteSource for ownedbytes::OwnedBytes {
 
     fn get_owner(self) -> Self::Owner {
         self
+    }
+}
+
+#[cfg(feature = "burn")]
+unsafe impl ByteSource for burn_tensor::Bytes {
+    type Owner = Self;
+
+    fn as_bytes(&self) -> &[u8] {
+        self
+    }
+
+    fn get_owner(self) -> Self::Owner {
+        self
+    }
+}
+
+#[cfg(all(feature = "burn", feature = "bytes"))]
+impl From<crate::Bytes> for burn_tensor::Bytes {
+    fn from(bytes: crate::Bytes) -> Self {
+        // Zero-copy bridge: anybytes keeps ownership in the bytes::Bytes owner,
+        // and burn wraps that shared view without copying.
+        let shared: bytes::Bytes = bytes.into();
+        burn_tensor::Bytes::from_shared(shared, burn_tensor::AllocationProperty::Other)
     }
 }
 

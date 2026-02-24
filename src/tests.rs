@@ -619,3 +619,58 @@ fn test_pyanybytes_memoryview() {
         assert!(readonly);
     });
 }
+
+#[cfg(feature = "burn")]
+#[test]
+fn test_burn_bytes_source_to_anybytes_is_zero_copy() {
+    use burn_tensor::Bytes as BurnBytes;
+
+    let burn = BurnBytes::from_bytes_vec(vec![1u8, 2, 3, 4]);
+    let burn_ptr = (&burn[..]).as_ptr();
+    let burn_len = burn.len();
+
+    let any = Bytes::from_source(burn);
+    assert_eq!(any.as_ref(), [1u8, 2, 3, 4].as_ref());
+    assert_eq!(any.len(), burn_len);
+    assert_eq!(any.as_ref().as_ptr(), burn_ptr);
+
+    let owner = any
+        .clone()
+        .downcast_to_owner::<BurnBytes>()
+        .expect("owner should be burn_tensor::Bytes");
+    assert_eq!(owner.len(), burn_len);
+}
+
+#[cfg(feature = "burn")]
+#[test]
+fn test_anybytes_into_burn_bytes_preserves_full_slice() {
+    use burn_tensor::Bytes as BurnBytes;
+
+    let any = Bytes::from_source(vec![9u8, 8, 7, 6]);
+    let any_ptr = any.as_ref().as_ptr();
+
+    let burn: BurnBytes = any.clone().into();
+    assert_eq!(&burn[..], any.as_ref());
+    assert_eq!((&burn[..]).as_ptr(), any_ptr);
+}
+
+#[cfg(feature = "burn")]
+#[test]
+fn test_anybytes_into_burn_bytes_preserves_sliced_view() {
+    use burn_tensor::Bytes as BurnBytes;
+
+    let base = Bytes::from_source(vec![10u8, 11, 12, 13, 14, 15]);
+    let slice = base.slice(2..5);
+    let slice_ptr = slice.as_ref().as_ptr();
+
+    let burn: BurnBytes = slice.clone().into();
+    assert_eq!(&burn[..], [12u8, 13, 14].as_ref());
+    assert_eq!((&burn[..]).as_ptr(), slice_ptr);
+
+    let any_again = Bytes::from_source(burn);
+    drop(base);
+    drop(slice);
+
+    assert_eq!(any_again.as_ref(), [12u8, 13, 14].as_ref());
+    assert_eq!(any_again.as_ref().as_ptr(), slice_ptr);
+}

@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- added optional `burn` feature with `ByteSource` support for `burn_tensor::Bytes`
+- added zero-copy conversion from `anybytes::Bytes` to `burn_tensor::Bytes`
+- added burn-feature tests covering both conversion directions and sliced views
 - added proptest coverage for prefix/suffix invariants and introduced a fuzz target for mutating `Bytes` operations
 - extended `verify.sh` to install cargo-fuzz and execute deterministic fuzz runs alongside Kani proofs
 - added Kani proofs ensuring `is_subslice` accepts only slices from the original allocation
