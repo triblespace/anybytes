@@ -10,7 +10,6 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 
 use crate::bytes::is_subslice;
-use crate::erase_lifetime;
 use crate::{bytes::ByteOwner, Bytes};
 use std::any::Any;
 use std::sync::{Arc, Weak};
@@ -75,7 +74,7 @@ impl Bytes {
         unsafe {
             match <T as TryFromBytes>::try_ref_from_bytes(self.get_data()) {
                 Ok(data) => Ok(View {
-                    data,
+                    data: data as *const T,
                     owner: self.take_owner(),
                 }),
                 Err(err) => Err(ViewError::from_cast_error(&self, err)),
@@ -88,17 +87,18 @@ impl Bytes {
     where
         T: ?Sized + TryFromBytes + KnownLayout + Immutable,
     {
-        unsafe {
-            match <T as TryFromBytes>::try_ref_from_prefix(self.get_data()) {
-                Ok((data, rest)) => {
-                    self.set_data(rest);
-                    Ok(View {
-                        data,
-                        owner: self.get_owner(),
-                    })
-                }
-                Err(err) => Err(ViewError::from_cast_error(self, err)),
+        // SAFETY: Read through the raw pointer to avoid borrowing self,
+        // allowing the subsequent set_data call.
+        let slice = unsafe { &*self.data_ptr() };
+        match <T as TryFromBytes>::try_ref_from_prefix(slice) {
+            Ok((data, rest)) => {
+                unsafe { self.set_data(rest) };
+                Ok(View {
+                    data: data as *const T,
+                    owner: self.get_owner(),
+                })
             }
+            Err(err) => Err(ViewError::from_cast_error(self, err)),
         }
     }
 
@@ -108,17 +108,16 @@ impl Bytes {
     where
         T: ?Sized + TryFromBytes + KnownLayout<PointerMetadata = usize> + Immutable,
     {
-        unsafe {
-            match <T as TryFromBytes>::try_ref_from_prefix_with_elems(self.get_data(), count) {
-                Ok((data, rest)) => {
-                    self.set_data(rest);
-                    Ok(View {
-                        data,
-                        owner: self.get_owner(),
-                    })
-                }
-                Err(err) => Err(ViewError::from_cast_error(self, err)),
+        let slice = unsafe { &*self.data_ptr() };
+        match <T as TryFromBytes>::try_ref_from_prefix_with_elems(slice, count) {
+            Ok((data, rest)) => {
+                unsafe { self.set_data(rest) };
+                Ok(View {
+                    data: data as *const T,
+                    owner: self.get_owner(),
+                })
             }
+            Err(err) => Err(ViewError::from_cast_error(self, err)),
         }
     }
 
@@ -127,17 +126,16 @@ impl Bytes {
     where
         T: ?Sized + TryFromBytes + KnownLayout + Immutable,
     {
-        unsafe {
-            match <T as TryFromBytes>::try_ref_from_suffix(self.get_data()) {
-                Ok((rest, data)) => {
-                    self.set_data(rest);
-                    Ok(View {
-                        data,
-                        owner: self.get_owner(),
-                    })
-                }
-                Err(err) => Err(ViewError::from_cast_error(self, err)),
+        let slice = unsafe { &*self.data_ptr() };
+        match <T as TryFromBytes>::try_ref_from_suffix(slice) {
+            Ok((rest, data)) => {
+                unsafe { self.set_data(rest) };
+                Ok(View {
+                    data: data as *const T,
+                    owner: self.get_owner(),
+                })
             }
+            Err(err) => Err(ViewError::from_cast_error(self, err)),
         }
     }
 
@@ -147,17 +145,16 @@ impl Bytes {
     where
         T: ?Sized + TryFromBytes + KnownLayout<PointerMetadata = usize> + Immutable,
     {
-        unsafe {
-            match <T as TryFromBytes>::try_ref_from_suffix_with_elems(self.get_data(), count) {
-                Ok((rest, data)) => {
-                    self.set_data(rest);
-                    Ok(View {
-                        data,
-                        owner: self.get_owner(),
-                    })
-                }
-                Err(err) => Err(ViewError::from_cast_error(self, err)),
+        let slice = unsafe { &*self.data_ptr() };
+        match <T as TryFromBytes>::try_ref_from_suffix_with_elems(slice, count) {
+            Ok((rest, data)) => {
+                unsafe { self.set_data(rest) };
+                Ok(View {
+                    data: data as *const T,
+                    owner: self.get_owner(),
+                })
             }
+            Err(err) => Err(ViewError::from_cast_error(self, err)),
         }
     }
 }
@@ -171,7 +168,9 @@ impl Bytes {
 ///
 /// See [ByteOwner] for an exhaustive list and more details.
 pub struct View<T: Immutable + ?Sized + 'static> {
-    pub(crate) data: &'static T,
+    // Raw pointer instead of a reference to avoid Stacked/Tree Borrows
+    // violations when `View` is passed by value (same rationale as `Bytes`).
+    pub(crate) data: *const T,
     // Actual owner of the bytes.
     pub(crate) owner: Arc<dyn ByteOwner>,
 }
@@ -204,6 +203,8 @@ impl<T: ?Sized + Immutable> Debug for WeakView<T> {
 }
 
 // ByteOwner is Send + Sync and View is immutable.
+// Raw pointers are !Send + !Sync by default, but the owner guarantees
+// the backing data is accessible from any thread.
 unsafe impl<T: ?Sized + Immutable> Send for View<T> {}
 unsafe impl<T: ?Sized + Immutable> Sync for View<T> {}
 
@@ -223,8 +224,11 @@ impl<T: ?Sized + Immutable> View<T> {
     /// # Safety
     /// The caller must guarantee that `data` remains valid for the lifetime of
     /// `owner`.
-    pub unsafe fn from_raw_parts(data: &'static T, owner: Arc<dyn ByteOwner>) -> Self {
-        Self { data, owner }
+    pub unsafe fn from_raw_parts(data: &T, owner: Arc<dyn ByteOwner>) -> Self {
+        Self {
+            data: data as *const T,
+            owner,
+        }
     }
 
     /// Returns the owner of the View in an `Arc`.
@@ -242,7 +246,7 @@ impl<T: ?Sized + Immutable> View<T> {
     /// Create a weak pointer.
     pub fn downgrade(&self) -> WeakView<T> {
         WeakView {
-            data: self.data as *const T,
+            data: self.data,
             owner: Arc::downgrade(&self.owner),
         }
     }
@@ -251,7 +255,9 @@ impl<T: ?Sized + Immutable> View<T> {
 impl<T: ?Sized + Immutable + IntoBytes> View<T> {
     /// Converts this view back into [`Bytes`].
     pub fn bytes(self) -> Bytes {
-        let bytes = IntoBytes::as_bytes(self.data);
+        // SAFETY: The owner keeps the data alive.
+        let data = unsafe { &*self.data };
+        let bytes = IntoBytes::as_bytes(data);
         unsafe { Bytes::from_raw_parts(bytes, self.owner) }
     }
 
@@ -262,12 +268,16 @@ impl<T: ?Sized + Immutable + IntoBytes> View<T> {
     ///
     /// This is similar to `Bytes::slice_to_bytes` but for `View`.
     pub fn field_to_view<F: ?Sized + Immutable + IntoBytes>(&self, field: &F) -> Option<View<F>> {
-        let self_bytes = IntoBytes::as_bytes(self.data);
+        // SAFETY: The owner keeps the data alive.
+        let data = unsafe { &*self.data };
+        let self_bytes = IntoBytes::as_bytes(data);
         let field_bytes = IntoBytes::as_bytes(field);
         if is_subslice(self_bytes, field_bytes) {
-            let data = unsafe { erase_lifetime(field) };
             let owner = self.owner.clone();
-            Some(View::<F> { data, owner })
+            Some(View::<F> {
+                data: field as *const F,
+                owner,
+            })
         } else {
             None
         }
@@ -278,8 +288,10 @@ impl<T: ?Sized + Immutable> WeakView<T> {
     /// The reverse of `downgrade`. Returns `None` if the value was dropped.
     pub fn upgrade(&self) -> Option<View<T>> {
         let arc = self.owner.upgrade()?;
-        let data = unsafe { &*(self.data) };
-        Some(View { data, owner: arc })
+        Some(View {
+            data: self.data,
+            owner: arc,
+        })
     }
 }
 
@@ -291,7 +303,8 @@ where
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        self.data
+        // SAFETY: The owner keeps the data alive for the lifetime of self.
+        unsafe { &*self.data }
     }
 }
 
