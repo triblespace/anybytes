@@ -63,8 +63,6 @@ use std::ops::Deref;
 use std::slice::SliceIndex;
 use std::sync::{Arc, Weak};
 
-use crate::erase_lifetime;
-
 pub(crate) fn is_subslice(slice: &[u8], subslice: &[u8]) -> bool {
     let slice_start = slice.as_ptr() as usize;
     let slice_end = slice_start + slice.len();
@@ -121,7 +119,12 @@ impl<T: ByteSource + Sync + Send + 'static> ByteOwner for T {}
 ///
 /// See [ByteOwner] for an exhaustive list and more details.
 pub struct Bytes {
-    data: &'static [u8],
+    // Raw pointer instead of a reference to avoid Stacked/Tree Borrows
+    // violations when `Bytes` is passed by value to a function (including
+    // `std::mem::drop`) and this happens to be the last strong reference.
+    // A `&'static [u8]` would be "protected" as a function argument while
+    // the `Arc` owner is deallocated, which is UB under both borrow models.
+    data: *const [u8],
     // Actual owner of the bytes.
     owner: Arc<dyn ByteOwner>,
 }
@@ -138,6 +141,8 @@ pub struct WeakBytes {
 }
 
 // ByteOwner is Send + Sync and Bytes is immutable.
+// Raw pointers are !Send + !Sync by default, but the owner guarantees
+// the backing data is accessible from any thread.
 unsafe impl Send for Bytes {}
 unsafe impl Sync for Bytes {}
 
@@ -153,13 +158,18 @@ impl Clone for Bytes {
 // Core implementation of Bytes.
 impl Bytes {
     #[inline]
-    pub(crate) unsafe fn get_data(&self) -> &'static [u8] {
+    pub(crate) fn data_ptr(&self) -> *const [u8] {
         self.data
     }
 
     #[inline]
-    pub(crate) unsafe fn set_data(&mut self, data: &'static [u8]) {
-        self.data = data;
+    pub(crate) unsafe fn get_data(&self) -> &[u8] {
+        unsafe { &*self.data }
+    }
+
+    #[inline]
+    pub(crate) unsafe fn set_data(&mut self, data: &[u8]) {
+        self.data = data as *const [u8];
     }
 
     #[inline]
@@ -183,19 +193,18 @@ impl Bytes {
     /// # Safety
     /// The caller must ensure that `data` remains valid for the lifetime of
     /// `owner`. No lifetime checks are performed.
-    pub unsafe fn from_raw_parts(data: &'static [u8], owner: Arc<dyn ByteOwner>) -> Self {
-        Self { data, owner }
+    pub unsafe fn from_raw_parts(data: &[u8], owner: Arc<dyn ByteOwner>) -> Self {
+        Self {
+            data: data as *const [u8],
+            owner,
+        }
     }
 
     /// Creates `Bytes` from a [`ByteSource`] (for example, `Vec<u8>`).
     pub fn from_source(source: impl ByteSource) -> Self {
-        let data = source.as_bytes();
-        // Erase the lifetime.
-        let data = unsafe { erase_lifetime(data) };
-
+        let data = source.as_bytes() as *const [u8];
         let owner = source.get_owner();
         let owner = Arc::new(owner);
-
         Self { data, owner }
     }
 
@@ -207,9 +216,7 @@ impl Bytes {
     /// sadly we can't provide a blanked implementation for those types
     /// because of the orphane rule.
     pub fn from_owning_source_arc(arc: Arc<impl ByteSource + ByteOwner>) -> Self {
-        let data = arc.as_bytes();
-        // Erase the lifetime.
-        let data = unsafe { erase_lifetime(data) };
+        let data = arc.as_bytes() as *const [u8];
         Self { data, owner: arc }
     }
 
@@ -259,8 +266,9 @@ impl Bytes {
     }
 
     #[inline]
-    pub(crate) fn as_slice<'a>(&'a self) -> &'a [u8] {
-        self.data
+    pub(crate) fn as_slice(&self) -> &[u8] {
+        // SAFETY: The owner keeps the data alive for the lifetime of self.
+        unsafe { &*self.data }
     }
 
     /// Returns the owner of the Bytes as a `Arc<T>`.
@@ -297,7 +305,6 @@ impl Bytes {
     where
         T: ByteOwner + Send + Sync + 'static,
     {
-        // Destructure to make it explicit that `self` is moved.
         let Self { data, owner } = self;
 
         // Verify the concrete type without releasing the owner yet.
@@ -307,10 +314,6 @@ impl Bytes {
             Err(_) => return Err(Self { data, owner }),
         };
 
-        // Avoid dangling `data` when dropping the owner by switching to a
-        // raw pointer right before we release our dynamic reference.
-        let data_ptr = data as *const [u8];
-
         // Drop our dynamic reference so the downcasted `Arc` becomes unique.
         drop(owner);
 
@@ -319,7 +322,6 @@ impl Bytes {
             Err(arc_t) => {
                 // Another strong reference exists; rebuild the `Bytes`.
                 let owner: Arc<dyn ByteOwner> = arc_t;
-                let data = unsafe { &*data_ptr };
                 Err(Self { data, owner })
             }
         }
@@ -328,8 +330,9 @@ impl Bytes {
     /// Returns a slice of self for the provided range.
     /// This operation is `O(1)`.
     pub fn slice(&self, range: impl SliceIndex<[u8], Output = [u8]>) -> Self {
+        let sliced = &self.as_slice()[range];
         Self {
-            data: &self.data[range],
+            data: sliced as *const [u8],
             owner: self.owner.clone(),
         }
     }
@@ -342,10 +345,12 @@ impl Bytes {
     /// This is similar to `bytes::Bytes::slice_ref` from `bytes 0.5.4`,
     /// but does not panic.
     pub fn slice_to_bytes(&self, slice: &[u8]) -> Option<Self> {
-        if is_subslice(self.data, slice) {
-            let data = unsafe { erase_lifetime(slice) };
+        if is_subslice(self.as_slice(), slice) {
             let owner = self.owner.clone();
-            Some(Self { data, owner })
+            Some(Self {
+                data: slice as *const [u8],
+                owner,
+            })
         } else {
             None
         }
@@ -356,13 +361,15 @@ impl Bytes {
     /// Returns `None` if `len` is greater than the length of `self`.
     /// This operation is `O(1)`.
     pub fn take_prefix(&mut self, len: usize) -> Option<Self> {
-        if len > self.data.len() {
+        // Copy the pointer to avoid borrowing self.
+        let slice = unsafe { &*self.data };
+        if len > slice.len() {
             return None;
         }
-        let (data, rest) = self.data.split_at(len);
-        self.data = rest;
+        let (data, rest) = slice.split_at(len);
+        self.data = rest as *const [u8];
         Some(Self {
-            data,
+            data: data as *const [u8],
             owner: self.owner.clone(),
         })
     }
@@ -372,35 +379,38 @@ impl Bytes {
     /// Returns `None` if `len` is greater than the length of `self`.
     /// This operation is `O(1)`.
     pub fn take_suffix(&mut self, len: usize) -> Option<Self> {
-        if len > self.data.len() {
+        let slice = unsafe { &*self.data };
+        if len > slice.len() {
             return None;
         }
-        let (rest, data) = self.data.split_at(self.data.len() - len);
-        self.data = rest;
+        let (rest, data) = slice.split_at(slice.len() - len);
+        self.data = rest as *const [u8];
         Some(Self {
-            data,
+            data: data as *const [u8],
             owner: self.owner.clone(),
         })
     }
 
     /// Removes and returns the first byte of `self`.
     pub fn pop_front(&mut self) -> Option<u8> {
-        let (&b, rest) = self.data.split_first()?;
-        self.data = rest;
+        let slice = unsafe { &*self.data };
+        let (&b, rest) = slice.split_first()?;
+        self.data = rest as *const [u8];
         Some(b)
     }
 
     /// Removes and returns the last byte of `self`.
     pub fn pop_back(&mut self) -> Option<u8> {
-        let (last, rest) = self.data.split_last()?;
-        self.data = rest;
+        let slice = unsafe { &*self.data };
+        let (last, rest) = slice.split_last()?;
+        self.data = rest as *const [u8];
         Some(*last)
     }
 
     /// Create a weak pointer.
     pub fn downgrade(&self) -> WeakBytes {
         WeakBytes {
-            data: self.data as *const [u8],
+            data: self.data,
             owner: Arc::downgrade(&self.owner),
         }
     }
@@ -410,8 +420,10 @@ impl WeakBytes {
     /// The reverse of `downgrade`. Returns `None` if the value was dropped.
     pub fn upgrade(&self) -> Option<Bytes> {
         let arc = self.owner.upgrade()?;
-        let data = unsafe { &*(self.data) };
-        Some(Bytes { data, owner: arc })
+        Some(Bytes {
+            data: self.data,
+            owner: arc,
+        })
     }
 }
 
@@ -512,20 +524,21 @@ impl fmt::Debug for Bytes {
 impl bytes::Buf for Bytes {
     #[inline]
     fn remaining(&self) -> usize {
-        self.data.len()
+        self.as_slice().len()
     }
 
     #[inline]
     fn chunk(&self) -> &[u8] {
-        self.data
+        self.as_slice()
     }
 
     #[inline]
     fn advance(&mut self, cnt: usize) {
-        if cnt > self.data.len() {
-            panic!("advance out of bounds: {} > {}", cnt, self.data.len());
+        let slice = unsafe { &*self.data };
+        if cnt > slice.len() {
+            panic!("advance out of bounds: {} > {}", cnt, slice.len());
         }
-        self.data = &self.data[cnt..];
+        self.data = &slice[cnt..] as *const [u8];
     }
 }
 
