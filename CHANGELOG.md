@@ -7,9 +7,14 @@
   `Bytes` or `View` is passed by value to a function (including
   `std::mem::drop`) while holding the last strong reference to the owner
 - removed `erase_lifetime` helper, now unnecessary with raw pointer storage
-- added Miri test suite (`tests/miri.rs`) with 36 tests covering all unsafe
+- added Miri test suite (`tests/miri.rs`) with 75 tests covering all unsafe
   code paths: lifetime erasure, weak reference upgrades, `try_unwrap_owner`
-  data pointer reconstruction, view operations, and complex drop orderings
+  data pointer reconstruction, view operations, complex drop orderings,
+  thread safety (`Send`/`Sync` validation), all `ByteSource` implementations
+  (`VecDeque`, `Cow`, `Box<[u8]>`, `&'static str`), `from_raw_parts` /
+  `View::from_raw_parts` direct tests, edge cases (zero-length, single byte,
+  exhaustive drain), winnow `Stream` operations, and stress patterns (many
+  clones, deeply nested slicing, overlapping slices)
 - added `scripts/miri.sh` for running Miri tests with Tree Borrows
 - added optional `burn` feature with `ByteSource` support for `burn_tensor::Bytes`
 - added zero-copy conversion from `anybytes::Bytes` to `burn_tensor::Bytes`
