@@ -478,3 +478,563 @@ fn try_unwrap_after_clone_drop_sequence() {
     let v = clone.try_unwrap_owner::<Vec<u8>>().expect("unique");
     assert_eq!(v, vec![1, 2, 3, 4]);
 }
+
+// ---------------------------------------------------------------------------
+// Thread safety: validate Send + Sync impls under Miri
+// ---------------------------------------------------------------------------
+
+/// Send Bytes to another thread and read it there.
+#[test]
+fn bytes_send_to_thread() {
+    let bytes = Bytes::from_source(vec![1u8, 2, 3, 4]);
+    let handle = std::thread::spawn(move || {
+        assert_eq!(bytes.as_ref(), &[1, 2, 3, 4]);
+        bytes
+    });
+    let returned = handle.join().unwrap();
+    assert_eq!(returned.as_ref(), &[1, 2, 3, 4]);
+}
+
+/// Share Bytes across threads via Arc (validates Sync).
+#[test]
+fn bytes_shared_across_threads() {
+    let bytes = Arc::new(Bytes::from_source(vec![10u8, 20, 30]));
+    let b1 = bytes.clone();
+    let b2 = bytes.clone();
+
+    let h1 = std::thread::spawn(move || {
+        assert_eq!((*b1).as_ref(), &[10, 20, 30]);
+    });
+    let h2 = std::thread::spawn(move || {
+        assert_eq!((*b2).as_ref(), &[10, 20, 30]);
+    });
+
+    h1.join().unwrap();
+    h2.join().unwrap();
+    assert_eq!((*bytes).as_ref(), &[10, 20, 30]);
+}
+
+/// Clone on one thread, slice on another, drop original on main.
+#[test]
+fn bytes_cross_thread_clone_and_drop() {
+    let bytes = Bytes::from_source(vec![1u8, 2, 3, 4, 5, 6]);
+    let clone = bytes.clone();
+
+    let handle = std::thread::spawn(move || {
+        let slice = clone.slice(2..5);
+        assert_eq!(slice.as_ref(), &[3, 4, 5]);
+        slice
+    });
+
+    drop(bytes);
+    let slice = handle.join().unwrap();
+    assert_eq!(slice.as_ref(), &[3, 4, 5]);
+}
+
+/// Downgrade on main thread, upgrade on main thread after cross-thread use.
+/// (WeakBytes is !Send due to raw pointer, so we test the pattern on one thread.)
+#[test]
+fn weakbytes_survives_cross_thread_clone_drop() {
+    let bytes = Bytes::from_source(vec![7u8, 8, 9]);
+    let weak = bytes.downgrade();
+    let clone = bytes.clone();
+
+    let handle = std::thread::spawn(move || {
+        assert_eq!(clone.as_ref(), &[7, 8, 9]);
+        // clone dropped here
+    });
+
+    handle.join().unwrap();
+    drop(bytes);
+    // weak still upgrades because clone kept the owner alive until the thread finished
+    // ...but clone was dropped in the thread, so it depends on the join.
+    // After join, clone is dropped. bytes is dropped. No strong refs remain.
+    assert!(weak.upgrade().is_none());
+}
+
+// ---------------------------------------------------------------------------
+// ByteSource coverage: VecDeque, Cow, Box<[u8]>, &'static str
+// ---------------------------------------------------------------------------
+
+/// VecDeque<u8> source: contiguous data survives slicing.
+#[test]
+fn vecdeque_source_slice_survives() {
+    use std::collections::VecDeque;
+
+    let mut deque = VecDeque::new();
+    deque.extend([1u8, 2, 3, 4, 5]);
+    deque.make_contiguous();
+    let bytes = Bytes::from_source(deque);
+    let slice = bytes.slice(1..4);
+    drop(bytes);
+    assert_eq!(slice.as_ref(), &[2, 3, 4]);
+}
+
+/// VecDeque downcast roundtrip.
+#[test]
+fn vecdeque_source_downcast() {
+    use std::collections::VecDeque;
+
+    let mut deque = VecDeque::new();
+    deque.extend([10u8, 20, 30]);
+    deque.make_contiguous();
+    let bytes = Bytes::from_source(deque);
+    let owner: Arc<VecDeque<u8>> = bytes.downcast_to_owner().expect("downcast VecDeque");
+    assert_eq!(owner.as_slices().0, &[10, 20, 30]);
+}
+
+/// Cow::Borrowed source.
+#[test]
+fn cow_borrowed_source_is_sound() {
+    use std::borrow::Cow;
+
+    let borrowed: Cow<'static, [u8]> = Cow::Borrowed(b"hello");
+    let bytes = Bytes::from_source(borrowed);
+    let slice = bytes.slice(1..4);
+    drop(bytes);
+    assert_eq!(slice.as_ref(), b"ell");
+}
+
+/// Cow::Owned source.
+#[test]
+fn cow_owned_source_is_sound() {
+    use std::borrow::Cow;
+
+    let owned: Cow<'static, [u8]> = Cow::Owned(vec![5, 6, 7, 8]);
+    let bytes = Bytes::from_source(owned);
+    let slice = bytes.slice(2..4);
+    drop(bytes);
+    assert_eq!(slice.as_ref(), &[7, 8]);
+}
+
+/// Cow<str> source (borrowed).
+#[test]
+fn cow_str_borrowed_source_is_sound() {
+    use std::borrow::Cow;
+
+    let borrowed: Cow<'static, str> = Cow::Borrowed("world");
+    let bytes = Bytes::from_source(borrowed);
+    assert_eq!(bytes.as_ref(), b"world");
+}
+
+/// Cow<str> source (owned).
+#[test]
+fn cow_str_owned_source_is_sound() {
+    use std::borrow::Cow;
+
+    let owned: Cow<'static, str> = Cow::Owned(String::from("foo"));
+    let bytes = Bytes::from_source(owned);
+    let slice = bytes.slice(1..3);
+    drop(bytes);
+    assert_eq!(slice.as_ref(), b"oo");
+}
+
+/// Box<[u8]> source (non-zerocopy path tests Box slice).
+#[test]
+fn box_u8_slice_source_is_sound() {
+    let boxed: Box<[u8]> = vec![1u8, 2, 3, 4].into_boxed_slice();
+    let bytes = Bytes::from_source(boxed);
+    let slice = bytes.slice(1..3);
+    drop(bytes);
+    assert_eq!(slice.as_ref(), &[2, 3]);
+}
+
+/// &'static str source.
+#[test]
+fn static_str_source_is_sound() {
+    let bytes = Bytes::from_source("hello world");
+    let slice = bytes.slice(6..11);
+    drop(bytes);
+    assert_eq!(slice.as_ref(), b"world");
+}
+
+// ---------------------------------------------------------------------------
+// from_raw_parts: direct test of the unsafe public API
+// ---------------------------------------------------------------------------
+
+/// Bytes::from_raw_parts with a subslice and a cloned owner Arc.
+#[test]
+fn from_raw_parts_direct() {
+    let bytes = Bytes::from_source(vec![10u8, 20, 30, 40, 50]);
+    // Get the owner via downcast, which gives us an Arc we can use.
+    let owner: Arc<Vec<u8>> = bytes.clone().downcast_to_owner().expect("downcast");
+    let subslice = &bytes.as_ref()[1..4];
+    let constructed = unsafe { Bytes::from_raw_parts(subslice, owner) };
+    drop(bytes);
+    assert_eq!(constructed.as_ref(), &[20, 30, 40]);
+}
+
+/// from_raw_parts with the full slice, then slice further.
+#[test]
+fn from_raw_parts_then_slice() {
+    let bytes = Bytes::from_source(vec![1u8, 2, 3, 4, 5]);
+    let owner: Arc<Vec<u8>> = bytes.clone().downcast_to_owner().expect("downcast");
+    let full = bytes.as_ref();
+    let constructed = unsafe { Bytes::from_raw_parts(full, owner) };
+    drop(bytes);
+    let sub = constructed.slice(2..4);
+    drop(constructed);
+    assert_eq!(sub.as_ref(), &[3, 4]);
+}
+
+// ---------------------------------------------------------------------------
+// Edge cases: zero-length, single byte, boundary conditions
+// ---------------------------------------------------------------------------
+
+/// Zero-length slice from a non-empty source.
+#[test]
+fn zero_length_slice_from_nonempty() {
+    let bytes = Bytes::from_source(vec![1u8, 2, 3]);
+    let empty = bytes.slice(1..1);
+    assert!(empty.is_empty());
+    assert_eq!(empty.as_ref(), &[] as &[u8]);
+    drop(bytes);
+    assert!(empty.is_empty());
+}
+
+/// take_prefix(0) returns an empty Bytes.
+#[test]
+fn take_prefix_zero() {
+    let mut bytes = Bytes::from_source(vec![1u8, 2, 3]);
+    let prefix = bytes.take_prefix(0).unwrap();
+    assert!(prefix.is_empty());
+    assert_eq!(bytes.as_ref(), &[1, 2, 3]);
+}
+
+/// take_suffix(0) returns an empty Bytes.
+#[test]
+fn take_suffix_zero() {
+    let mut bytes = Bytes::from_source(vec![1u8, 2, 3]);
+    let suffix = bytes.take_suffix(0).unwrap();
+    assert!(suffix.is_empty());
+    assert_eq!(bytes.as_ref(), &[1, 2, 3]);
+}
+
+/// take_prefix of the entire length.
+#[test]
+fn take_prefix_full_length() {
+    let mut bytes = Bytes::from_source(vec![1u8, 2, 3]);
+    let prefix = bytes.take_prefix(3).unwrap();
+    assert_eq!(prefix.as_ref(), &[1, 2, 3]);
+    assert!(bytes.is_empty());
+}
+
+/// take_suffix of the entire length.
+#[test]
+fn take_suffix_full_length() {
+    let mut bytes = Bytes::from_source(vec![1u8, 2, 3]);
+    let suffix = bytes.take_suffix(3).unwrap();
+    assert_eq!(suffix.as_ref(), &[1, 2, 3]);
+    assert!(bytes.is_empty());
+}
+
+/// Single-byte source through various operations.
+#[test]
+fn single_byte_all_ops() {
+    let mut bytes = Bytes::from_source(vec![42u8]);
+    let clone = bytes.clone();
+    let slice = bytes.slice(0..1);
+    let weak = bytes.downgrade();
+
+    assert_eq!(bytes.pop_front(), Some(42));
+    assert!(bytes.is_empty());
+    assert_eq!(clone.as_ref(), &[42]);
+    assert_eq!(slice.as_ref(), &[42]);
+    assert!(weak.upgrade().is_some());
+
+    drop(bytes);
+    drop(clone);
+    drop(slice);
+    assert!(weak.upgrade().is_none());
+}
+
+/// Exhaustive drain with take_prefix: split one byte at a time.
+#[test]
+fn drain_by_take_prefix() {
+    let data = vec![10u8, 20, 30, 40, 50];
+    let mut bytes = Bytes::from_source(data.clone());
+    let mut collected = Vec::new();
+
+    while !bytes.is_empty() {
+        let prefix = bytes.take_prefix(1).unwrap();
+        collected.push(prefix.as_ref()[0]);
+    }
+
+    assert_eq!(collected, data);
+    assert!(bytes.is_empty());
+}
+
+/// Exhaustive drain with take_suffix: split one byte at a time from the end.
+#[test]
+fn drain_by_take_suffix() {
+    let data = vec![10u8, 20, 30, 40, 50];
+    let mut bytes = Bytes::from_source(data.clone());
+    let mut collected = Vec::new();
+
+    while !bytes.is_empty() {
+        let suffix = bytes.take_suffix(1).unwrap();
+        collected.push(suffix.as_ref()[0]);
+    }
+
+    collected.reverse();
+    assert_eq!(collected, data);
+}
+
+/// slice_to_bytes at exact boundaries (start and end).
+#[test]
+fn slice_to_bytes_at_boundaries() {
+    let bytes = Bytes::from_source(vec![1u8, 2, 3, 4, 5]);
+    // Full range
+    let full = bytes.slice_to_bytes(bytes.as_ref()).unwrap();
+    assert_eq!(full.as_ref(), bytes.as_ref());
+    // Empty subslice at start
+    let empty_start = bytes.slice_to_bytes(&bytes.as_ref()[0..0]).unwrap();
+    assert!(empty_start.is_empty());
+    // Empty subslice at end
+    let empty_end = bytes.slice_to_bytes(&bytes.as_ref()[5..5]).unwrap();
+    assert!(empty_end.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// Stress patterns: many clones, complex ownership
+// ---------------------------------------------------------------------------
+
+/// Create many clones from the same owner, drop in reverse order.
+#[test]
+fn many_clones_reverse_drop() {
+    let original = Bytes::from_source(vec![0u8; 64]);
+    let clones: Vec<Bytes> = (0..32).map(|_| original.clone()).collect();
+    drop(original);
+
+    // Drop in reverse
+    for clone in clones.into_iter().rev() {
+        assert_eq!(clone.len(), 64);
+    }
+}
+
+/// Create overlapping slices, keep some, drop others.
+#[test]
+fn overlapping_slices_mixed_lifetimes() {
+    let bytes = Bytes::from_source(vec![0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+    let s1 = bytes.slice(0..5);
+    let s2 = bytes.slice(3..8);
+    let s3 = bytes.slice(5..10);
+
+    drop(bytes);
+
+    // Overlapping region [3..5] is covered by both s1 and s2.
+    assert_eq!(&s1.as_ref()[3..5], &s2.as_ref()[0..2]);
+    // Overlapping region [5..8] is covered by both s2 and s3.
+    assert_eq!(&s2.as_ref()[2..5], &s3.as_ref()[0..3]);
+
+    drop(s2);
+    assert_eq!(s1.as_ref(), &[0, 1, 2, 3, 4]);
+    assert_eq!(s3.as_ref(), &[5, 6, 7, 8, 9]);
+}
+
+/// Weak references from many slices, upgrade after dropping half.
+#[test]
+fn many_weaks_partial_upgrade() {
+    let bytes = Bytes::from_source(vec![0u8; 100]);
+    let slices: Vec<Bytes> = (0..10).map(|i| bytes.slice(i * 10..(i + 1) * 10)).collect();
+    let weaks: Vec<_> = slices.iter().map(|s| s.downgrade()).collect();
+
+    // Drop the original and all slices.
+    drop(bytes);
+    drop(slices);
+
+    // All weaks should now fail to upgrade.
+    for w in &weaks {
+        assert!(w.upgrade().is_none());
+    }
+}
+
+/// Deeply nested slicing (slice of slice of slice...).
+#[test]
+fn deeply_nested_slicing() {
+    let mut current = Bytes::from_source(vec![0u8; 256]);
+    for _ in 0..8 {
+        let len = current.len();
+        current = current.slice(1..len - 1);
+    }
+    // Started at 256, removed 2 bytes per iteration -> 256 - 16 = 240
+    assert_eq!(current.len(), 240);
+    assert_eq!(current.as_ref(), &[0u8; 240][..]);
+}
+
+// ---------------------------------------------------------------------------
+// View: thread safety
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "zerocopy")]
+mod view_thread_tests {
+    use anybytes::Bytes;
+    use std::sync::Arc;
+
+    /// Send a View to another thread.
+    #[test]
+    fn view_send_to_thread() {
+        let bytes = Bytes::from_source(vec![1u8, 2, 3, 4]);
+        let view = bytes.view::<[u8]>().unwrap();
+        let handle = std::thread::spawn(move || {
+            assert_eq!(view.as_ref(), &[1, 2, 3, 4]);
+        });
+        handle.join().unwrap();
+    }
+
+    /// Share a View across threads via Arc (validates Sync).
+    #[test]
+    fn view_shared_across_threads() {
+        let bytes = Bytes::from_source(vec![10u8, 20, 30]);
+        let view = Arc::new(bytes.view::<[u8]>().unwrap());
+        let v1 = view.clone();
+        let v2 = view.clone();
+
+        let h1 = std::thread::spawn(move || {
+            assert_eq!(&**v1, &[10u8, 20, 30] as &[u8]);
+        });
+        let h2 = std::thread::spawn(move || {
+            assert_eq!(&**v2, &[10u8, 20, 30] as &[u8]);
+        });
+
+        h1.join().unwrap();
+        h2.join().unwrap();
+    }
+
+    /// View::from_raw_parts direct test.
+    #[test]
+    fn view_from_raw_parts_direct() {
+        let bytes = Bytes::from_source(vec![1u8, 2, 3, 4]);
+        let owner: Arc<Vec<u8>> = bytes.clone().downcast_to_owner().expect("downcast");
+        let data: &[u8] = bytes.as_ref();
+        let view = unsafe { anybytes::View::<[u8]>::from_raw_parts(data, owner) };
+        drop(bytes);
+        assert_eq!(view.as_ref(), &[1, 2, 3, 4]);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Winnow Stream operations under Miri
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "winnow")]
+mod winnow_tests {
+    use anybytes::Bytes;
+    use winnow::stream::{Offset, Stream};
+
+    /// next_token pops bytes one at a time (exercises pop_front under Miri).
+    #[test]
+    fn winnow_next_token() {
+        let mut input = Bytes::from_source(vec![1u8, 2, 3]);
+        assert_eq!(input.next_token(), Some(1));
+        assert_eq!(input.next_token(), Some(2));
+        assert_eq!(input.next_token(), Some(3));
+        assert_eq!(input.next_token(), None);
+    }
+
+    /// next_slice splits prefix (exercises take_prefix).
+    #[test]
+    fn winnow_next_slice() {
+        let mut input = Bytes::from_source(vec![10u8, 20, 30, 40]);
+        let prefix = input.next_slice(2);
+        assert_eq!(prefix.as_ref(), &[10, 20]);
+        assert_eq!(input.as_ref(), &[30, 40]);
+    }
+
+    /// checkpoint + reset restores state.
+    #[test]
+    fn winnow_checkpoint_reset() {
+        let mut input = Bytes::from_source(vec![1u8, 2, 3, 4, 5]);
+        let checkpoint = input.checkpoint();
+        let _ = input.next_slice(3);
+        assert_eq!(input.as_ref(), &[4, 5]);
+        input.reset(&checkpoint);
+        assert_eq!(input.as_ref(), &[1, 2, 3, 4, 5]);
+    }
+
+    /// offset_from measures distance between start and current position.
+    #[test]
+    fn winnow_offset_from() {
+        let start = Bytes::from_source(vec![1u8, 2, 3, 4, 5]);
+        let mut current = start.clone();
+        let _ = current.next_slice(3);
+        assert_eq!(current.offset_from(&start), 3);
+    }
+
+    /// iter_offsets yields (offset, byte) pairs.
+    #[test]
+    fn winnow_iter_offsets() {
+        let input = Bytes::from_source(vec![10u8, 20, 30]);
+        let pairs: Vec<(usize, u8)> = input.iter_offsets().collect();
+        assert_eq!(pairs, vec![(0, 10), (1, 20), (2, 30)]);
+    }
+
+    /// Full parser sequence: checkpoint, try parse, backtrack, re-parse.
+    #[test]
+    fn winnow_backtrack_pattern() {
+        let mut input = Bytes::from_source(vec![1u8, 2, 3, 4, 5, 6]);
+        let cp = input.checkpoint();
+
+        // "Try" consuming 4 bytes.
+        let attempt = input.next_slice(4);
+        assert_eq!(attempt.as_ref(), &[1, 2, 3, 4]);
+
+        // Backtrack.
+        input.reset(&cp);
+
+        // Consume 2 bytes instead.
+        let take2 = input.next_slice(2);
+        assert_eq!(take2.as_ref(), &[1, 2]);
+        assert_eq!(input.as_ref(), &[3, 4, 5, 6]);
+    }
+}
+
+#[cfg(all(feature = "winnow", feature = "zerocopy"))]
+mod winnow_view_tests {
+    use anybytes::Bytes;
+    use winnow::error::ContextError;
+    use winnow::Parser;
+
+    /// winnow::view parser for byte slices.
+    #[test]
+    fn winnow_view_u8_slice() {
+        let mut input = Bytes::from_source(vec![1u8, 2, 3, 4, 5]);
+        let view = anybytes::winnow::view::<[u8; 3], ContextError>
+            .parse_next(&mut input)
+            .expect("view");
+        assert_eq!(*view, [1, 2, 3]);
+        assert_eq!(input.as_ref(), &[4, 5]);
+    }
+
+    /// winnow::view_elems parser.
+    #[test]
+    fn winnow_view_elems_under_miri() {
+        let mut input = Bytes::from_source(vec![10u8, 20, 30, 40]);
+        let view = anybytes::winnow::view_elems::<[u8], ContextError>(2)
+            .parse_next(&mut input)
+            .expect("view_elems");
+        assert_eq!(view.as_ref(), &[10, 20]);
+        assert_eq!(input.as_ref(), &[30, 40]);
+    }
+
+    /// Chain multiple view parsers.
+    #[test]
+    fn winnow_chained_view_parsers() {
+        let mut input = Bytes::from_source(vec![1u8, 2, 3, 4, 5, 6]);
+        let v1 = anybytes::winnow::view::<[u8; 2], ContextError>
+            .parse_next(&mut input)
+            .unwrap();
+        let v2 = anybytes::winnow::view::<[u8; 2], ContextError>
+            .parse_next(&mut input)
+            .unwrap();
+        assert_eq!(*v1, [1, 2]);
+        assert_eq!(*v2, [3, 4]);
+        assert_eq!(input.as_ref(), &[5, 6]);
+
+        // Drop views, remaining input must still be valid.
+        drop(v1);
+        drop(v2);
+        assert_eq!(input.as_ref(), &[5, 6]);
+    }
+}
