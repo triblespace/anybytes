@@ -96,7 +96,7 @@ impl ByteArea {
         Ok(Bytes::from_source(mmap))
     }
 
-    /// Persist the temporary area file to `path` and return the underlying [`File`].
+    /// Persist the temporary area file to `path` and return the underlying [`std::fs::File`].
     pub fn persist<P: AsRef<std::path::Path>>(self, path: P) -> io::Result<std::fs::File> {
         self.file.persist(path).map_err(Into::into)
     }

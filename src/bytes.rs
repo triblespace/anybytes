@@ -230,7 +230,7 @@ impl Bytes {
     /// to remain open after mapping.
     ///
     /// The argument may be any type that implements [`memmap2::MmapAsRawDesc`],
-    /// such as [`&std::fs::File`] or [`&tempfile::NamedTempFile`].
+    /// such as [`std::fs::File`] or [`tempfile::NamedTempFile`].
     #[cfg(feature = "mmap")]
     pub unsafe fn map_file<F>(file: F) -> std::io::Result<Self>
     where
@@ -252,7 +252,7 @@ impl Bytes {
     /// platform's alignment requirements (typically page size).
     ///
     /// The argument may be any type that implements [`memmap2::MmapAsRawDesc`],
-    /// such as [`&std::fs::File`] or [`&tempfile::NamedTempFile`].
+    /// such as [`std::fs::File`] or [`tempfile::NamedTempFile`].
     #[cfg(feature = "mmap")]
     pub unsafe fn map_file_region<F>(file: F, offset: u64, len: usize) -> std::io::Result<Self>
     where
